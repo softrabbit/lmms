@@ -277,6 +277,17 @@ protected:
 		return "trackcontentwidget";
 	}
 
+	virtual void saveSettings( QDomDocument& doc, QDomElement& element )
+	{
+		Q_UNUSED(doc)
+		Q_UNUSED(element)
+	}
+
+	virtual void loadSettings( const QDomElement& element )
+	{
+		Q_UNUSED(element)
+	}
+
 	virtual void undoStep( JournalEntry & _je );
 	virtual void redoStep( JournalEntry & _je );
 
@@ -295,8 +306,6 @@ private:
 
 	typedef QVector<trackContentObjectView *> tcoViewVector;
 	tcoViewVector m_tcoViews;
-
-	int m_pixelsPerTact;
 
 	QPixmap m_background;
 
@@ -543,6 +552,17 @@ protected:
 	virtual void modelChanged();
 	virtual void undoStep( JournalEntry & _je );
 	virtual void redoStep( JournalEntry & _je );
+
+	virtual void saveSettings( QDomDocument& doc, QDomElement& element )
+	{
+		Q_UNUSED(doc)
+		Q_UNUSED(element)
+	}
+
+	virtual void loadSettings( const QDomElement& element )
+	{
+		Q_UNUSED(element)
+	}
 
 	virtual QString nodeName() const
 	{
