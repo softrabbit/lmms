@@ -372,6 +372,9 @@ bool MidiImport::readSMF( TrackContainer* tc )
 		Alg_track_ptr trk = seq->track( t );
 		pd.setValue( t + preTrackSteps );
 
+		int rpn_msb = -1;
+		int rpn_lsb = -1;
+
 		for( int c = 0; c < 129; c++ )
 		{
 			ccs[c].clear();
@@ -473,7 +476,12 @@ bool MidiImport::readSMF( TrackContainer* tc )
 									cc *= 127.0f;
 								}
 								break;
-
+							case 6:
+								if(rpn_msb == 0 && rpn_lsb == 0) {
+									objModel = ch->it->pitchRangeModel();
+									cc *= 127.0f;
+								}
+								break;
 							case 7:
 								objModel = ch->it->volumeModel();
 								cc *= 100.0f;
@@ -488,6 +496,11 @@ bool MidiImport::readSMF( TrackContainer* tc )
 								objModel = ch->it->pitchModel();
 								cc = cc * 100.0f;
 								break;
+						    case 100:
+								rpn_msb = cc;
+								break;
+						    case 101:
+								rpn_lsb = cc;
 							default:
 								//TODO: something useful for other CCs
 								break;
@@ -531,6 +544,11 @@ bool MidiImport::readSMF( TrackContainer* tc )
 			// must delete trackView first - but where is it?
 			//tc->removeTrack( chs[c].it );
 			//it->deleteLater();
+		}
+		if( chs[c].it->pitchRangeModel()->isAutomated() &&
+			chs[c].it->pitchModel()->isAutomated() )
+		{
+			printf("Channel %d needs pitch bend post processing\n",c);
 		}
 	}
 
