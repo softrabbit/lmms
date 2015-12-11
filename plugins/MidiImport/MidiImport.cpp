@@ -141,7 +141,7 @@ bool MidiImport::tryImport( TrackContainer* tc )
 
 
 
-
+//! Temporary keeper of automation while importing MIDI
 class smfMidiCC
 {
 
@@ -180,7 +180,8 @@ public:
 		lastPos = 0;
 	}
 
-
+	//! Add automation value at a point in time, create new AutomationPattern 
+	//! if the last point was more than DefaultTicksPerTact ago
 	smfMidiCC & putValue( MidiTime time, AutomatableModel * objModel, float value )
 	{
 		if( !ap || time > lastPos + DefaultTicksPerTact )
@@ -259,6 +260,19 @@ public:
 		return this;
 	}
 
+	/// Iterate pitch range and pitch bend data for the channel and
+	/// adjust the values into the pitch bend
+	void adjustPitches() {
+		QVector<AutomationPattern *> rangePatterns = 
+			AutomationPattern::patternsForModel( it->pitchRangeModel() );
+		QVector<AutomationPattern *> bendPatterns = 
+			AutomationPattern::patternsForModel( it->pitchModel() );
+		if(!rangePatterns.isEmpty() && !bendPatterns.isEmpty() )
+		{
+			printf("Channel needs pitch bend post processing\n");
+			
+		}
+	}
 
 	void addNote( Note & n )
 	{
@@ -297,8 +311,8 @@ bool MidiImport::readSMF( TrackContainer* tc )
 	pd.setMaximum( seq->tracks()  + preTrackSteps );
 	pd.setValue( 1 );
 	
-	// 128 CC + Pitch Bend
-	smfMidiCC ccs[129];
+	// 128 CC + Pitch Bend + Pitch Bend Range
+	smfMidiCC ccs[130];
 	smfMidiChannel chs[256];
 
 	MeterModel & timeSigMM = Engine::getSong()->getTimeSigModel();
@@ -375,7 +389,7 @@ bool MidiImport::readSMF( TrackContainer* tc )
 		int rpn_msb = -1;
 		int rpn_lsb = -1;
 
-		for( int c = 0; c < 129; c++ )
+		for( int c = 0; c < 130; c++ )
 		{
 			ccs[c].clear();
 		}
@@ -480,6 +494,7 @@ bool MidiImport::readSMF( TrackContainer* tc )
 								if(rpn_msb == 0 && rpn_lsb == 0) {
 									objModel = ch->it->pitchRangeModel();
 									cc *= 127.0f;
+									ccid = 129;
 								}
 								break;
 							case 7:
@@ -531,6 +546,16 @@ bool MidiImport::readSMF( TrackContainer* tc )
 				}
 			}
 		}
+
+		// Need to go through pitch range and pitch model automation 
+		// starting at 0 ticks, multiplying the pitch automation if needed.
+		AutomationTrack *pitchRange_at = ccs[129].at;
+		AutomationTrack *pitchBend_at = ccs[128].at;
+		if( pitchRange_at != NULL && pitchBend_at != NULL ) {
+			printf("Track %d needs pitch bend post processing\n",t);
+		}
+		
+
 	}
 
 	delete seq;
@@ -538,17 +563,14 @@ bool MidiImport::readSMF( TrackContainer* tc )
 	
 	for( int c=0; c < 256; ++c )
 	{
+		chs[c].adjustPitches();
+
 		if( !chs[c].hasNotes && chs[c].it )
 		{
 			printf(" Should remove empty track\n");
 			// must delete trackView first - but where is it?
 			//tc->removeTrack( chs[c].it );
 			//it->deleteLater();
-		}
-		if( chs[c].it->pitchRangeModel()->isAutomated() &&
-			chs[c].it->pitchModel()->isAutomated() )
-		{
-			printf("Channel %d needs pitch bend post processing\n",c);
 		}
 	}
 
