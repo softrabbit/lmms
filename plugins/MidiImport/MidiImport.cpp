@@ -181,7 +181,8 @@ public:
 	}
 
 	//! Add automation value at a point in time, create new AutomationPattern 
-	//! if the last point was more than DefaultTicksPerTact ago
+	//! if none is attached or if the last point occurred more than 
+	//! DefaultTicksPerTact ago
 	smfMidiCC & putValue( MidiTime time, AutomatableModel * objModel, float value )
 	{
 		if( !ap || time > lastPos + DefaultTicksPerTact )
@@ -270,6 +271,32 @@ public:
 		if(!rangePatterns.isEmpty() && !bendPatterns.isEmpty() )
 		{
 			printf("Channel needs pitch bend post processing\n");
+			QVector<AutomationPattern *>::iterator bp = bendPatterns.begin();
+			QVector<AutomationPattern *>::iterator rp = rangePatterns.begin();
+			int range = it->pitchRangeModel()->initValue();
+			
+			while( bp != bendPatterns.end() ) {
+				// First, iterate past all range patterns that end before 
+				// start of current bend pattern
+				while( rp != rangePatterns.end() && 
+					   (*rp)->endPosition() < (*bp)-> startPosition() ) {
+					range = (int)(*rp)->valueAt( (*rp)->endPosition() );
+					++rp;
+				}
+				// Now, if there is a range pattern it either overlaps...
+				if( rp != rangePatterns.end() && 
+					(*rp)->startPosition() < (*bp)-> endPosition() ) {
+					// Apply range data in pattern to pitches
+					printf("case 1\n");
+				} else {
+					// Apply static range number to pitches
+					printf("case 2\n");
+				}
+
+				++bp;
+			}
+			
+
 			
 		}
 	}
@@ -546,16 +573,6 @@ bool MidiImport::readSMF( TrackContainer* tc )
 				}
 			}
 		}
-
-		// Need to go through pitch range and pitch model automation 
-		// starting at 0 ticks, multiplying the pitch automation if needed.
-		AutomationTrack *pitchRange_at = ccs[129].at;
-		AutomationTrack *pitchBend_at = ccs[128].at;
-		if( pitchRange_at != NULL && pitchBend_at != NULL ) {
-			printf("Track %d needs pitch bend post processing\n",t);
-		}
-		
-
 	}
 
 	delete seq;
