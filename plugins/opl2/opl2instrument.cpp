@@ -98,6 +98,7 @@ opl2instrument::opl2instrument( InstrumentTrack * _instrument_track ) :
 	op1_d_mdl(14.0, 0.0, 15.0, 1.0, this, tr( "Op 1 Decay" )   ),
 	op1_s_mdl(3.0, 0.0, 15.0, 1.0, this, tr( "Op 1 Sustain" )   ),
 	op1_r_mdl(10.0, 0.0, 15.0, 1.0, this, tr( "Op 1 Release" )   ),
+	op1_r2_mdl(10.0, 0.0, 15.0, 1.0, this, tr( "Op 1 Release 2" )   ),
 	op1_lvl_mdl(62.0, 0.0, 63.0, 1.0, this, tr( "Op 1 Level" )   ),
 	op1_scale_mdl(0.0, 0.0, 3.0, 1.0, this, tr( "Op 1 Level Scaling" ) ),
 	op1_mul_mdl(0.0, 0.0, 15.0, 1.0, this, tr( "Op 1 Frequency Multiple" ) ),
@@ -117,6 +118,7 @@ opl2instrument::opl2instrument( InstrumentTrack * _instrument_track ) :
 	op2_d_mdl(3.0, 0.0, 15.0, 1.0, this, tr( "Op 2 Decay" )   ),
 	op2_s_mdl(14.0, 0.0, 15.0, 1.0, this, tr( "Op 2 Sustain" ) ),
 	op2_r_mdl(12.0, 0.0, 15.0, 1.0, this, tr( "Op 2 Release" )   ),
+	op2_r2_mdl(10.0, 0.0, 15.0, 1.0, this, tr( "Op 2 Release 2" )   ),
 	op2_lvl_mdl(63.0, 0.0, 63.0, 1.0, this, tr( "Op 2 Level" )   ),
 	op2_scale_mdl(0.0, 0.0, 3.0, 1.0, this, tr( "Op 2 Level Scaling" ) ),
 	op2_mul_mdl(1.0, 0.0, 15.0, 1.0, this, tr( "Op 2 Frequency Multiple" ) ),
@@ -176,6 +178,7 @@ opl2instrument::opl2instrument( InstrumentTrack * _instrument_track ) :
 	MOD_CON( op1_d_mdl );
 	MOD_CON( op1_s_mdl );
 	MOD_CON( op1_r_mdl );
+	MOD_CON( op1_r2_mdl );
 	MOD_CON( op1_lvl_mdl );
 	MOD_CON( op1_scale_mdl );
 	MOD_CON( op1_mul_mdl );
@@ -194,6 +197,7 @@ opl2instrument::opl2instrument( InstrumentTrack * _instrument_track ) :
 	MOD_CON( op2_d_mdl );
 	MOD_CON( op2_s_mdl );
 	MOD_CON( op2_r_mdl );
+	MOD_CON( op2_r2_mdl );
 	MOD_CON( op2_lvl_mdl );
 	MOD_CON( op2_scale_mdl );
 	MOD_CON( op2_mul_mdl );
@@ -304,6 +308,8 @@ bool opl2instrument::handleMidiEvent( const MidiEvent& event, const MidiTime& ti
 
 		voice = popVoice();
 		if( voice != OPL2_NO_VOICE ) {
+			// First load the basic patch into the voice
+			updatePatch(voice);
 			// Turn voice on, NB! the frequencies are straight by voice number,
 			// not by the adlib_opadd table!
 			theEmulator->write(0xA0+voice, fnums[key] & 0xff);
@@ -319,6 +325,13 @@ bool opl2instrument::handleMidiEvent( const MidiEvent& event, const MidiTime& ti
                         if( voiceNote[voice] == key ) {
                                 theEmulator->write(0xA0+voice, fnums[key] & 0xff);
                                 theEmulator->write(0xB0+voice, (fnums[key] & 0x1f00) >> 8 );
+				// Update new release values to the voice
+				int tmp = ((15 - ( (int)op1_s_mdl.value() & 0x0f ) ) << 4 ) +
+					(15 - ( (int)op1_r2_mdl.value() & 0x0f ) );			
+				theEmulator->write(0x80+adlib_opadd[voice], tmp); // op1 S/R
+				tmp = ((15 - ( (int)op2_s_mdl.value() & 0x0f ) ) << 4 ) +
+					(15 - ( (int)op2_r2_mdl.value() & 0x0f ) );			
+				theEmulator->write(0x83+adlib_opadd[voice], tmp); // op2
                                 voiceNote[voice] |= OPL2_VOICE_FREE;
 				pushVoice(voice);
                         }
@@ -423,6 +436,7 @@ void opl2instrument::saveSettings( QDomDocument & _doc, QDomElement & _this )
 	op1_d_mdl.saveSettings( _doc, _this, "op1_d" );
 	op1_s_mdl.saveSettings( _doc, _this, "op1_s" );
 	op1_r_mdl.saveSettings( _doc, _this, "op1_r" );
+	op1_r2_mdl.saveSettings( _doc, _this, "op1_r2" );
 	op1_lvl_mdl.saveSettings( _doc, _this, "op1_lvl" );
 	op1_scale_mdl.saveSettings( _doc, _this, "op1_scale" );
 	op1_mul_mdl.saveSettings( _doc, _this, "op1_mul" );
@@ -437,6 +451,7 @@ void opl2instrument::saveSettings( QDomDocument & _doc, QDomElement & _this )
 	op2_d_mdl.saveSettings( _doc, _this, "op2_d" );
 	op2_s_mdl.saveSettings( _doc, _this, "op2_s" );
 	op2_r_mdl.saveSettings( _doc, _this, "op2_r" );
+	op2_r2_mdl.saveSettings( _doc, _this, "op2_r2" );
 	op2_lvl_mdl.saveSettings( _doc, _this, "op2_lvl" );
 	op2_scale_mdl.saveSettings( _doc, _this, "op2_scale" );
 	op2_mul_mdl.saveSettings( _doc, _this, "op2_mul" );
@@ -484,12 +499,32 @@ void opl2instrument::loadSettings( const QDomElement & _this )
 	vib_depth_mdl.loadSettings( _this, "vib_depth" );
 	trem_depth_mdl.loadSettings( _this, "trem_depth" );
 
+	// Second release added afterwards, defaults to same as first release
+	// for backward compatibility
+	op1_r2_mdl.loadSettings( _this, "op1_r" );
+	op1_r2_mdl.loadSettings( _this, "op1_r2" );
+	op2_r2_mdl.loadSettings( _this, "op2_r" );
+	op2_r2_mdl.loadSettings( _this, "op2_r2" );
+
+
 }
+
+
 
 // Load a patch into the emulator
 void opl2instrument::loadPatch(const unsigned char inst[14]) {
 	emulatorMutex.lock();
 	for(int v=0; v<OPL2_VOICES; ++v) {
+		loadPatchVoice(inst, v);
+	}
+	emulatorMutex.unlock();
+		
+}
+
+// Loads a patch into one voice
+// NB. Highly recommended to call this only when holding the emulatorMutex...
+void opl2instrument::loadPatchVoice(const unsigned char inst[14], int v) {
+	if(v>=-1 && v<OPL2_VOICES) {
 		theEmulator->write(0x20+adlib_opadd[v],inst[0]); // op1 AM/VIB/EG/KSR/Multiplier
 		theEmulator->write(0x23+adlib_opadd[v],inst[1]); // op2
 		// theEmulator->write(0x40+adlib_opadd[v],inst[2]); // op1 KSL/Output Level - these are handled by noteon/aftertouch code
@@ -502,7 +537,6 @@ void opl2instrument::loadPatch(const unsigned char inst[14]) {
 		theEmulator->write(0xe3+adlib_opadd[v],inst[9]); // op2
 		theEmulator->write(0xc0+v,inst[10]);             // feedback/algorithm
 	}
-	emulatorMutex.unlock();
 }
 
 void opl2instrument::tuneEqual(int center, float Hz) {
@@ -531,7 +565,7 @@ void opl2instrument::loadGMPatch() {
 }
 
 // Update patch from the models to the chip emulation
-void opl2instrument::updatePatch() {
+void opl2instrument::updatePatch(int voice) {
 	unsigned char inst[14] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 	inst[0] = ( op1_trem_mdl.value() ?  128 : 0  ) +
 		( op1_vib_mdl.value() ?  64 : 0 ) +
@@ -574,6 +608,11 @@ void opl2instrument::updatePatch() {
 			setVoiceVelocity(voice, velocities[voiceNote[voice]] );
 		}
 	}
+	if( voice < 0 || voice > OPL2_VOICES ) {
+		loadPatch(inst);
+	} else {
+		loadPatchVoice(inst, voice);
+	}
 #ifdef false
 		printf("UPD: %02x %02x %02x %02x %02x -- %02x %02x %02x %02x %02x %02x\n",
 		       inst[0], inst[1], inst[2], inst[3], inst[4],
@@ -581,7 +620,6 @@ void opl2instrument::updatePatch() {
 #endif
 
 
-	loadPatch(inst);
 }
 
 // Load an SBI file into the knob models
@@ -656,10 +694,12 @@ void opl2instrument::loadFile( const QString& file ) {
 		// Modulator Sustain/Release
 		op1_s_mdl.setValue( 15 - ( ( sbidata[42] & 0xf0 ) >> 4 ) );
 		op1_r_mdl.setValue( 15 - ( sbidata[42] & 0x0f ) );
+		op1_r2_mdl.setValue( 15 - ( sbidata[42] & 0x0f ) );
 
 		// Carrier Sustain/Release
 		op2_s_mdl.setValue( 15 - ( ( sbidata[43] & 0xf0 ) >> 4 ) );
 		op2_r_mdl.setValue( 15 - ( sbidata[43] & 0x0f ) );
+		op2_r2_mdl.setValue( 15 - ( sbidata[43] & 0x0f ) );
 
 		// Modulator Wave Select
 		op1_waveform_mdl.setValue( sbidata[44] & 0x03 );
@@ -713,6 +753,7 @@ opl2instrumentView::opl2instrumentView( Instrument * _instrument,
 	KNOB_GEN(op1_d_kn, "Decay", "", 34, 48);
 	KNOB_GEN(op1_s_kn, "Sustain", "", 62, 48);
 	KNOB_GEN(op1_r_kn, "Release", "", 90, 48);
+	KNOB_GEN(op1_r2_kn, "Release 2", "", 118, 48);
 	KNOB_GEN(op1_lvl_kn, "Level", "", 166, 48);
 	KNOB_GEN(op1_scale_kn, "Scale", "", 194, 48);
 	KNOB_GEN(op1_mul_kn, "Frequency multiplier", "", 222, 48);
@@ -720,7 +761,7 @@ opl2instrumentView::opl2instrumentView( Instrument * _instrument,
 	BUTTON_GEN(op1_perc_btn, "Percussive envelope", 36, 87);
 	BUTTON_GEN(op1_trem_btn, "Tremolo", 65, 87);
 	BUTTON_GEN(op1_vib_btn, "Vibrato", 93, 87);
-	KNOB_GEN(feedback_kn, "Feedback", "", 128, 48);
+	KNOB_GEN(feedback_kn, "Feedback", "", 128, 85);
 
 	op1_waveform = new automatableButtonGroup( this );
 	WAVEBUTTON_GEN(op1_w0_btn,"Sine", 154, 86, "wave1_on", "wave1_off", op1_waveform);
@@ -734,6 +775,7 @@ opl2instrumentView::opl2instrumentView( Instrument * _instrument,
 	KNOB_GEN(op2_d_kn, "Decay", "", 34, 138);
 	KNOB_GEN(op2_s_kn, "Sustain", "", 62, 138);
 	KNOB_GEN(op2_r_kn, "Release", "", 90, 138);
+	KNOB_GEN(op2_r2_kn, "Release 2", "", 118, 138);
 	KNOB_GEN(op2_lvl_kn, "Level", "", 166, 138);
 	KNOB_GEN(op2_scale_kn, "Scale", "", 194, 138);
 	KNOB_GEN(op2_mul_kn, "Frequency multiplier", "", 222, 138);
@@ -825,6 +867,7 @@ void opl2instrumentView::modelChanged()
 	op1_d_kn->setModel( &m->op1_d_mdl );
 	op1_s_kn->setModel( &m->op1_s_mdl );
 	op1_r_kn->setModel( &m->op1_r_mdl );
+	op1_r2_kn->setModel( &m->op1_r2_mdl );
 	op1_lvl_kn->setModel( &m->op1_lvl_mdl );
 	op1_scale_kn->setModel( &m->op1_scale_mdl );
 	op1_mul_kn->setModel( &m->op1_mul_mdl );
@@ -840,6 +883,7 @@ void opl2instrumentView::modelChanged()
 	op2_d_kn->setModel( &m->op2_d_mdl );
 	op2_s_kn->setModel( &m->op2_s_mdl );
 	op2_r_kn->setModel( &m->op2_r_mdl );
+	op2_r2_kn->setModel( &m->op2_r2_mdl );
 	op2_lvl_kn->setModel( &m->op2_lvl_mdl );
 	op2_scale_kn->setModel( &m->op2_scale_mdl );
 	op2_mul_kn->setModel( &m->op2_mul_mdl );
@@ -862,7 +906,9 @@ void opl2instrumentView::modelChanged()
 	connect( &m->op2_d_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );
 
 	connect( &m->op1_r_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );	
+	connect( &m->op1_r2_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );	
 	connect( &m->op2_r_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );	
+	connect( &m->op2_r2_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );	
 
 	connect( &m->op1_mul_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );	
 	connect( &m->op2_mul_mdl, SIGNAL( dataChanged() ), this, SLOT( updateKnobHints() ) );	

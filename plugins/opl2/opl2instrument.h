@@ -62,6 +62,7 @@ public:
 	void saveSettings( QDomDocument & _doc, QDomElement & _this );
 	void loadSettings( const QDomElement & _this );
 	void loadPatch(const unsigned char inst[14]);
+	void loadPatchVoice(const unsigned char inst[14], int voice);
 	void tuneEqual(int center, float Hz);
 	virtual void loadFile( const QString& file );
 
@@ -71,6 +72,7 @@ public:
 	FloatModel op1_d_mdl;
 	FloatModel op1_s_mdl;
 	FloatModel op1_r_mdl;
+	FloatModel op1_r2_mdl;
 	FloatModel op1_lvl_mdl;
 	FloatModel op1_scale_mdl;
 	FloatModel op1_mul_mdl;
@@ -90,6 +92,7 @@ public:
 	FloatModel op2_d_mdl;
 	FloatModel op2_s_mdl;
 	FloatModel op2_r_mdl;
+	FloatModel op2_r2_mdl;
 	FloatModel op2_lvl_mdl;
 	FloatModel op2_scale_mdl;
 	FloatModel op2_mul_mdl;
@@ -109,7 +112,7 @@ public:
 
 
 private slots:
-        void updatePatch();
+        void updatePatch(int voice=-1);
 	void reloadEmulator();
 	void loadGMPatch();
 
@@ -155,6 +158,7 @@ public:
 	Knob *op1_d_kn;
 	Knob *op1_s_kn;
 	Knob *op1_r_kn;
+	Knob *op1_r2_kn;
 	Knob *op1_lvl_kn;
 	Knob *op1_scale_kn;
 	Knob *op1_mul_kn;
@@ -174,6 +178,7 @@ public:
 	Knob *op2_d_kn;
 	Knob *op2_s_kn;
 	Knob *op2_r_kn;
+	Knob *op2_r2_kn;
 	Knob *op2_lvl_kn;
 	Knob *op2_scale_kn;
 	Knob *op2_mul_kn;
