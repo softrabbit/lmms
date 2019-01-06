@@ -24,7 +24,7 @@
  */
 
 
-#include "DrumSynth.h"
+#include "DrumSynthOld.h"
 
 #include <sstream>
 #include <cstring>
@@ -57,7 +57,21 @@ const int     PNT   =  2;
 const int     dENV  =  3;
 const int     NEXTT =  4;
 
-int DrumSynth::LongestEnv(void)
+// Bah, I'll move these into the class once I sepearate DrumsynthFile from DrumSynth
+// llama
+float envpts[8][3][32];    //envelope/time-level/point
+float envData[8][6];       //envelope running status
+int   chkOn[8], sliLev[8]; //section on/off and level
+float timestretch;         //overall time scaling
+short DD[1200], clippoint;
+float DF[1200];
+float phi[1200];
+
+long  wavewords, wavemode=0;
+float mem_t=1.0f, mem_o=1.0f, mem_n=1.0f, mem_b=1.0f, mem_tune=1.0f, mem_time=1.0f;
+
+
+int DrumSynthOld::LongestEnv(void)
 {
   long e, eon, p;
   float l=0.f;
@@ -76,7 +90,7 @@ int DrumSynth::LongestEnv(void)
 }
 
 
-float DrumSynth::LoudestEnv(void)
+float DrumSynthOld::LoudestEnv(void)
 {
   float loudest=0.f;
   int i=0;
@@ -90,7 +104,7 @@ float DrumSynth::LoudestEnv(void)
 }
 
 
-void DrumSynth::UpdateEnv(int e, long t)
+void DrumSynthOld::UpdateEnv(int e, long t)
 {
   float endEnv, dT;
                                                              //0.2's added
@@ -105,7 +119,7 @@ void DrumSynth::UpdateEnv(int e, long t)
 }
 
 
-void DrumSynth::GetEnv(int env, const char *sec, const char *key, QString ini)
+void DrumSynthOld::GetEnv(int env, const char *sec, const char *key, QString ini)
 {
   char en[256], s[8];
   int i=0, o=0, ep=0;
@@ -134,7 +148,7 @@ void DrumSynth::GetEnv(int env, const char *sec, const char *key, QString ini)
 }
 
 
-float DrumSynth::waveform(float ph, int form)
+float DrumSynthOld::waveform(float ph, int form)
 {
   float w;
 
@@ -155,7 +169,7 @@ float DrumSynth::waveform(float ph, int form)
 }
 
 
-int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file)
+int DrumSynthOld::GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file)
 {
     stringstream is;
     bool inSection = false;
@@ -221,7 +235,7 @@ int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const c
     return len;
 }
 
-int DrumSynth::GetPrivateProfileInt(const char *sec, const char *key, int def, QString file)
+int DrumSynthOld::GetPrivateProfileInt(const char *sec, const char *key, int def, QString file)
 {
   char tmp[16];
   int i=0;
@@ -232,7 +246,7 @@ int DrumSynth::GetPrivateProfileInt(const char *sec, const char *key, int def, Q
   return i;
 }
 
-float DrumSynth::GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file)
+float DrumSynthOld::GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file)
 {
     char tmp[16];
     float f=0.f;
@@ -249,7 +263,7 @@ float DrumSynth::GetPrivateProfileFloat(const char *sec, const char *key, float 
 //  an associative array or something once we have a datastructure to load in to.
 //  llama
 
-int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
+int DrumSynthOld::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
 {
   //input file
   char sec[32];
@@ -449,6 +463,41 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   wave = new int16_t[channels * Length]; //wave memory buffer
   if(wave==NULL) {return 0;}
   wavewords = 0;
+
+  /*
+  if(wavemode==0)
+  {
+    //open output file
+    fp = fopen(wavfile, "wb");
+    if(!fp) {return 3;} //output fail
+
+     //set up INFO chunk
+    WI.list = 0x5453494C;
+    WI.listLength = 36 + commentLen;
+    WI.info = 0x4F464E49;
+    WI.isft = 0x54465349;
+    WI.isftLength = 16;
+    strcpy(WI.software, "DrumSynth v2.0 "); WI.software[15]=0;
+    WI.icmt = 0x544D4349;
+    WI.icmtLength = commentLen;
+
+    //write WAV header
+    WH.riff = 0x46464952;
+    WH.riffLength = 36 + (2 * Length) + 44 + commentLen;
+    WH.wave = 0x45564157;
+    WH.fmt = 0x20746D66;
+    WH.waveLength = 16;
+    WH.wFormatTag = WAVE_FORMAT_PCM;
+    WH.nChannels = 1;
+    WH.nSamplesPerSec = Fs;
+    WH.nAvgBytesPerSec = 2 * Fs;
+    WH.nBlockAlign = 2;
+    WH.wBitsPerSample = 16;
+    WH.data = 0x61746164;
+    WH.dataLength = 2 * Length;
+    fwrite(&WH, 1, 44, fp);
+  }
+  */
 
   //generate
   tpos = 0;
@@ -678,6 +727,18 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
 
     tpos = tpos + 1200;
   }
+
+  /*
+  if(wavemode==0)
+  {
+    fwrite(wave, 2, Length, fp);  //write data
+    fwrite(&WI,  1, 44, fp); //write INFO chunk
+    fwrite(&comment, 1, commentLen, fp);
+    fclose(fp);
+  }
+  wavemode = 0; //force compatibility!!
+  */
+
 
   return Length;
 }

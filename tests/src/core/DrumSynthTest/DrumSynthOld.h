@@ -24,17 +24,17 @@
  */
 
 
-#ifndef _DRUMSYNTH_H__
-#define _DRUMSYNTH_H__
+#ifndef _DRUMSYNTH_OLD_H__
+#define _DRUMSYNTH_OLD_H__
 
 #include <stdint.h>
 #include "lmms_basics.h"
 
 class QString;
 
-class DrumSynth {
+class DrumSynthOld {
     public:
-        DrumSynth() {};
+        DrumSynthOld() {};
         int GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs);
 
     private:
@@ -48,17 +48,6 @@ class DrumSynth {
         int GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file);
         int GetPrivateProfileInt(const char *sec, const char *key, int def, QString file);
         float GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file);
-
-	float envpts[8][3][32];    //envelope/time-level/point
-	float envData[8][6];       //envelope running status
-	int   chkOn[8], sliLev[8]; //section on/off and level
-	float timestretch;         //overall time scaling
-	short DD[1200], clippoint;
-	float DF[1200];
-	float phi[1200];
-
-	long  wavewords, wavemode=0;
-	float mem_t=1.0f, mem_o=1.0f, mem_n=1.0f, mem_b=1.0f, mem_tune=1.0f, mem_time=1.0f;
 
 };
 

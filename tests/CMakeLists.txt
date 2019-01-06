@@ -16,6 +16,8 @@ ADD_EXECUTABLE(tests
 
 	src/core/ProjectVersionTest.cpp
 	src/core/RelativePathsTest.cpp
+	src/core/DrumSynthTest/DrumSynthTest.cpp
+	src/core/DrumSynthTest/DrumSynthOld.cpp
 
 	src/tracks/AutomationTrackTest.cpp
 )
