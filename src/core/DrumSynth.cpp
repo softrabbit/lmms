@@ -26,12 +26,11 @@
 
 #include "DrumSynth.h"
 
-#include <sstream>
 #include <cstring>
 
 #include <math.h>     //sin(), exp(), etc.
 
-#include <QFile>
+
 
 #ifdef LMMS_BUILD_WIN32
 #define powf pow
@@ -45,11 +44,6 @@
 
 using namespace std;
 
-#define WORD  __u16
-#define DWORD __u32
-#define WAVE_FORMAT_PCM			0x0001
-
-// const int     Fs    =  44100;
 const float   TwoPi =  6.2831853f;
 const int     MAX   =  0;
 const int     ENV   =  1;
@@ -155,9 +149,19 @@ float DrumSynth::waveform(float ph, int form)
 }
 
 
+
+QByteArray DrumSynth::LoadFile(QString file)
+{
+    // Use QFile to handle unicode file name on Windows
+    QFile f(file);
+    f.open(QIODevice::ReadOnly);
+    return f.readAll().constData();
+}
+
+
 int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file)
 {
-    stringstream is;
+
     bool inSection = false;
     char *line;
     char *k, *b;
@@ -165,13 +169,13 @@ int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const c
 
     line = (char*)malloc(200);
 
-    // Use QFile to handle unicode file name on Windows
-    // Previously we used ifstream directly
-    QFile f(file);
-    f.open(QIODevice::ReadOnly);
-    QByteArray dat = f.readAll().constData();
-    is.str(string(dat.constData(), dat.size()));
+    if(dat == nullptr) {
+	    dat = LoadFile(file);
+	    is.str(string(dat.constData(), dat.size()));
+    }
 
+    
+    is.seekg(0,ios_base::beg);
     while (is.good()) {
         if (!inSection) {
             is.ignore( numeric_limits<streamsize>::max(), '[');
@@ -244,8 +248,7 @@ float DrumSynth::GetPrivateProfileFloat(const char *sec, const char *key, float 
 }
 
 
-//  Constantly opening and scanning each file for the setting really sucks.
-//  But, the original did this, and we know it works.  Will store file into
+//  Will store file into
 //  an associative array or something once we have a datastructure to load in to.
 //  llama
 

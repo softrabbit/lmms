@@ -29,6 +29,7 @@
 #include "DrumSynth.h"
 
 #include <QDir>
+#include <QDebug>
 
 class DrumSynthTest : QTestSuite
 {
@@ -43,8 +44,10 @@ private slots:
 		QFileInfo fi(ConfigManager::inst()->factorySamplesDir() + "/drumsynth/acoustic/Snare.ds");
                 QVERIFY(fi.exists());
 		// 
+		qDebug() << ds.GetDSFileSamples(fi.absoluteFilePath(), buf, 2, 44100);
 		QVERIFY(dso.GetDSFileSamples(fi.absoluteFilePath(), buf, 2, 44100) == 
 			ds.GetDSFileSamples(fi.absoluteFilePath(), buf, 2, 44100) );
+
 	}
 } DrumSynthTests;
 
