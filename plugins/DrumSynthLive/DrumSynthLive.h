@@ -28,9 +28,12 @@
 #define _DRUMSYNTH_H__
 
 #include <stdint.h>
+#include <sstream>
 #include "lmms_basics.h"
+#include <QFile>
 
 class QString;
+using namespace std;
 
 class DrumSynth {
     public:
@@ -45,10 +48,13 @@ class DrumSynth {
 
         float waveform(float ph, int form);
 
+        QByteArray LoadFile(QString file);
         int GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file);
         int GetPrivateProfileInt(const char *sec, const char *key, int def, QString file);
         float GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file);
 
+	QByteArray dat;	
+	stringstream is;
 };
 
 #endif

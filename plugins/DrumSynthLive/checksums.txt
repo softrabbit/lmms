@@ -476,7 +476,7 @@
 ../../data/samples/drumsynth/misc_fx/not_trying_too_hard.ds	26400	95331780
 ../../data/samples/drumsynth/misc_fx/sign_off.ds	254400	948250024
 ../../data/samples/drumsynth/misc_fx/the_plot_thickens.ds	348000	351782091
-../../data/samples/drumsynth/misc_fx/multi-ping.ds	2400	0
+../../data/samples/drumsynth/misc_fx/multi-ping.ds	138000	700278683
 ../../data/samples/drumsynth/misc_fx/across_the_universe.ds	348000	125758900
 ../../data/samples/drumsynth/misc_fx/electric_intro_to_a.ds	465600	1619896000
 ../../data/samples/drumsynth/misc_fx/synthetic_dive.ds	43200	285185770
@@ -486,7 +486,7 @@
 ../../data/samples/drumsynth/misc_fx/howdy_oil_barrel.ds	39600	56185988
 ../../data/samples/drumsynth/misc_fx/future.ds	42000	161275944
 ../../data/samples/drumsynth/misc_fx/funky_stab.ds	7200	5362835
-../../data/samples/drumsynth/misc_fx/new_sweep.ds	63600	29870336
+../../data/samples/drumsynth/misc_fx/new_sweep.ds	63600	165264736
 ../../data/samples/drumsynth/misc_fx/synthetic_dive_crust.ds	43200	392167424
 ../../data/samples/drumsynth/misc_fx/gmaj_lo-fi_chord.ds	22800	197002023
 ../../data/samples/drumsynth/misc_fx/sci-fi_door_open.ds	44400	268150625
@@ -525,7 +525,7 @@
 ../../data/samples/drumsynth/misc_fx/noise_filtering.ds	358800	524805700
 ../../data/samples/drumsynth/misc_fx/punch_flange_2.ds	711600	1858406400
 ../../data/samples/drumsynth/misc_fx/oom_pulse.ds	19200	41669380
-../../data/samples/drumsynth/misc_fx/my_atari_memory.ds	465600	1077312941
+../../data/samples/drumsynth/misc_fx/my_atari_memory.ds	465600	1084892501
 ../../data/samples/drumsynth/misc_fx/experiment_3_-_the_transform.ds	224400	1041849135
 ../../data/samples/drumsynth/misc_fx/2_bit_click.ds	4800	245456
 ../../data/samples/drumsynth/misc_fx/alien_curiousity.ds	63600	137665880
@@ -535,7 +535,7 @@
 ../../data/samples/drumsynth/misc_fx/hip-hop_stop.ds	42000	157031256
 ../../data/samples/drumsynth/misc_fx/metal_twist.ds	46800	122285126
 ../../data/samples/drumsynth/misc_fx/fried_food_for_dinner.ds	61200	161222817
-../../data/samples/drumsynth/misc_fx/frequency_revolution.ds	140400	727412400
+../../data/samples/drumsynth/misc_fx/frequency_revolution.ds	140400	553269053
 ../../data/samples/drumsynth/misc_fx/teeth.ds	187200	6117064
 ../../data/samples/drumsynth/misc_fx/electric_waves_out_my_window.ds	475200	1464785122
 ../../data/samples/drumsynth/misc_fx/oom_paa.ds	19200	49008460

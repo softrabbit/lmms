@@ -24,9 +24,10 @@
  */
 
 
-#include "DrumSynth.h"
+#include "DrumSynthLive.h"
 
 #include <sstream>
+#include <iostream>
 #include <cstring>
 
 #include <math.h>     //sin(), exp(), etc.
@@ -172,36 +173,43 @@ float DrumSynth::waveform(float ph, int form)
 }
 
 
+QByteArray DrumSynth::LoadFile(QString file)
+{
+    // Use QFile to handle unicode file name on Windows
+    QFile f(file);
+    f.open(QIODevice::ReadOnly);
+    return f.readAll().constData();
+}
+
+
 int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file)
 {
-    stringstream is;
     bool inSection = false;
     char *line;
     char *k, *b;
     int len = 0;
 
-    line = (char*)malloc(200);
+    line = (char*)malloc(400);
 
-    // Use QFile to handle unicode file name on Windows
-    // Previously we used ifstream directly
-    QFile f(file);
-    f.open(QIODevice::ReadOnly);
-    QByteArray dat = f.readAll().constData();
-    is.str(string(dat.constData(), dat.size()));
-
+    if(dat == nullptr) {
+            dat = LoadFile(file);
+            is.str(string(dat.constData(), dat.size()));
+    }
+    
+    is.seekg(0, ios_base::beg);
     while (is.good()) {
         if (!inSection) {
             is.ignore( numeric_limits<streamsize>::max(), '[');
 
             if (!is.eof()) {
-                is.getline(line, 200, ']');
+                is.getline(line, 400, ']');
                 if (strcasecmp(line, sec)==0) {
                     inSection = true;
                 }
             }
         }
         else if (!is.eof()) {
-            is.getline(line, 200);
+            is.getline(line, 400);
             if (line[0] == '[')
                 break;
 
@@ -234,7 +242,6 @@ int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const c
     }
 
     free(line);
-
     return len;
 }
 
@@ -355,8 +362,10 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   else
   { a = 1.f; b = -NT / 50.f; c = (float)fabs((float)NT) / 100.f; g = NL; }
 
+  // Always a fixed random number sequence for now, remember to enable this option
+  // when done coding...
   //if(GetPrivateProfileInt(sec,"FixedSeq",0,dsfile)!=0)
-    //srand(1); //fixed random sequence
+  srand(1); //
 
    //read tone parameters
   strcpy(sec, "Tone");
@@ -468,41 +477,6 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   wave = new int16_t[channels * Length]; //wave memory buffer
   if(wave==NULL) {return 0;}
   wavewords = 0;
-
-  /*
-  if(wavemode==0)
-  {
-    //open output file
-    fp = fopen(wavfile, "wb");
-    if(!fp) {return 3;} //output fail
-
-     //set up INFO chunk
-    WI.list = 0x5453494C;
-    WI.listLength = 36 + commentLen;
-    WI.info = 0x4F464E49;
-    WI.isft = 0x54465349;
-    WI.isftLength = 16;
-    strcpy(WI.software, "DrumSynth v2.0 "); WI.software[15]=0;
-    WI.icmt = 0x544D4349;
-    WI.icmtLength = commentLen;
-
-    //write WAV header
-    WH.riff = 0x46464952;
-    WH.riffLength = 36 + (2 * Length) + 44 + commentLen;
-    WH.wave = 0x45564157;
-    WH.fmt = 0x20746D66;
-    WH.waveLength = 16;
-    WH.wFormatTag = WAVE_FORMAT_PCM;
-    WH.nChannels = 1;
-    WH.nSamplesPerSec = Fs;
-    WH.nAvgBytesPerSec = 2 * Fs;
-    WH.nBlockAlign = 2;
-    WH.wBitsPerSample = 16;
-    WH.data = 0x61746164;
-    WH.dataLength = 2 * Length;
-    fwrite(&WH, 1, 44, fp);
-  }
-  */
 
   //generate
   tpos = 0;
@@ -732,18 +706,6 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
 
     tpos = tpos + 1200;
   }
-
-  /*
-  if(wavemode==0)
-  {
-    fwrite(wave, 2, Length, fp);  //write data
-    fwrite(&WI,  1, 44, fp); //write INFO chunk
-    fwrite(&comment, 1, commentLen, fp);
-    fclose(fp);
-  }
-  wavemode = 0; //force compatibility!!
-  */
-
 
   return Length;
 }

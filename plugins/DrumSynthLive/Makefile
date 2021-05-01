@@ -7,13 +7,17 @@ LDLIBS += $(shell pkg-config --libs Qt5Core)
 
 CXXFLAGS += -fPIC $(INCLUDE_LMMS) $(INCLUDE_CONFIG) $(INCLUDE_QT) -DQT_CORE_LIB -DQT_SHARED
 
+.PHONY: testrun benchmark
+
 DrumSynthLive.o: $(SOURCES)
 
 test: DrumSynthLive.o test.cpp
 
-runtest: test
-	
+testrun: test
+	./checksums.sh
+
 benchmark: test
-	
+	./benchmark.sh
+
 clean:
 	rm *.o *.gch test
