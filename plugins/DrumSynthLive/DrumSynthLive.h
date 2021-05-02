@@ -51,6 +51,7 @@ class DrumSynth {
         QByteArray LoadFile(QString file);
         int GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file);
         int GetPrivateProfileInt(const char *sec, const char *key, int def, QString file);
+	bool GetPrivateProfileBool(const char *sec, const char *key, int def, QString file);
         float GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file);
 
 	QByteArray dat;	

@@ -32,7 +32,7 @@ int main(int argc, char **argv) {
 		long nanosecs = 0;
 		for(int i=0; i<runs; ++i) {
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
-			int L = D.GetDSFileSamples(dsFile, buffer, 1, 48000);
+			D.GetDSFileSamples(dsFile, buffer, 1, 48000);
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 			free(buffer);
 			nanosecs += (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
