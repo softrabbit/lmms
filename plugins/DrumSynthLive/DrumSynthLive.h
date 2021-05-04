@@ -41,6 +41,31 @@ class DrumSynth {
         int GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs);
 
     private:
+	const float   TwoPi =  6.2831853f;
+
+	// EnvData indexes, i.e. envData[ENV_TONE][ENV] holds the current value for
+        // the tone envelope. Should really make a class or at least a struct out of this
+	const int     LAST  =  0;    // Time of last envelope point
+	const int     ENV   =  1;    // Envelope value
+	const int     PNT   =  2;    // Current point (index)
+	const int     dENV  =  3;    // Delta to add to envelope value at each sample
+	const int     NEXTT =  4;    // Timestamp of next point to go to
+        // Envelope indexes
+	const int ENV_TONE = 1;
+	const int ENV_NOISE = 2;
+	const int ENV_OVERTONE1 = 3;
+	const int ENV_OVERTONE2 = 4;
+	const int ENV_NOISEBAND = 5;
+	const int ENV_NOISEBAND2 = 6;
+	const int ENV_FILTER = 7;
+
+
+	float timestretch;         // overall time scaling
+
+	float envData[8][6];       // envelope running status	
+	bool  chkOn[8];            // section on/off 
+	int   Level[8];            // and level
+	
         float LoudestEnv(void);
         int   LongestEnv(void);
         void  UpdateEnv(int e, long t);

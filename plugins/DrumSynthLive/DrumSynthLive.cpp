@@ -50,39 +50,7 @@ using namespace std;
 #define WORD  __u16
 #define DWORD __u32
 
-// const int     Fs    =  44100;
-const float   TwoPi =  6.2831853f;
-const int     MAX   =  0;
-const int     ENV   =  1;
-const int     PNT   =  2;
-const int     dENV  =  3;
-const int     NEXTT =  4;
-
-// Envelope indexes
-const int ENV_TONE = 1;
-const int ENV_NOISE = 2;
-const int ENV_OVERTONE1 = 3;
-const int ENV_OVERTONE2 = 4;
-const int ENV_NOISEBAND = 5;
-const int ENV_NOISEBAND2 = 6;
-const int ENV_FILTER = 7;
-
-const int BUFFER_SIZE = 1200;
-
-// Bah, I'll move these into the class once I sepearate DrumsynthFile from DrumSynth
-// llama
-float envpts[8][3][32];    //envelope/time-level/point
-float envData[8][6];       //envelope running status
-bool  chkOn[8];            //section on/off 
-int   sliLev[8];           //and level
-float timestretch;         //overall time scaling
-
-short clippoint; 
-float DF[BUFFER_SIZE];            // Buffer audio is rendered into, could maybe be local to the function?
-float phi[BUFFER_SIZE];           // Phase buffer... something? Move to local, too?
-
-long  wavewords;
-
+float envpts[8][3][32];    // envelope/time-level/point, this didn't agree with being moved into the .h file (?)
 
 int DrumSynth::LongestEnv(void)
 {
@@ -96,8 +64,8 @@ int DrumSynth::LongestEnv(void)
 
     p = 0;
     while (envpts[e][0][p + 1] >= 0.f) p++;
-    envData[e][MAX] = envpts[e][0][p] * timestretch;
-    if(chkOn[eon]) l = max(l, envData[e][MAX]);
+    envData[e][LAST] = envpts[e][0][p] * timestretch;
+    if(chkOn[eon]) l = max(l, envData[e][LAST]);
   }
   //l *= timestretch;
 
@@ -112,7 +80,7 @@ float DrumSynth::LoudestEnv(void)
 
   while (i<5) //2
   {
-	  if(chkOn[i]) loudest = max(loudest, (float)sliLev[i]);
+	  if(chkOn[i]) loudest = max(loudest, (float)Level[i]);
 	  i++;
   }
   return (loudest * loudest);
@@ -164,7 +132,7 @@ void DrumSynth::GetEnv(int env, const char *sec, const char *key, QString ini)
   if(sscanf(s, "%f", &envpts[env][1][ep])==0) envpts[env][1][ep] = 0.f;
   envpts[env][0][ep + 1] = -1;
 
-  envData[env][MAX] = envpts[env][0][ep];
+  envData[env][LAST] = envpts[env][0][ep];
 }
 
 
@@ -308,11 +276,19 @@ float DrumSynth::GetPrivateProfileFloat(const char *sec, const char *key, float 
 
 int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
 {
+
+	const int BUFFER_SIZE = 1200;
+	float DF[BUFFER_SIZE];            // Buffer audio is rendered into
+	float phi[BUFFER_SIZE];           // Phase buffer... something?
+  long  wavewords;                  // Counter
+
+  short clippoint;
+
   //input file
   char sec[32];
   char ver[32];
-  char comment[256];
-  int commentLen=0;
+  //char comment[256];
+  //int commentLen=0;
 
   //generation
   long  Length, tpos=0, tplus, totmp, t, i, j;
@@ -348,7 +324,8 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
 
 
   //read master parameters
-  GetPrivateProfileString(sec,"Comment","",comment,sizeof(comment),dsfile);
+	// Comment logic not needed, left for later.
+  /* GetPrivateProfileString(sec,"Comment","",comment,sizeof(comment),dsfile);
   while((comment[commentLen]!=0) && (commentLen<254)) commentLen++;
   if(commentLen==0) {
 	  comment[0]=32;
@@ -357,15 +334,13 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   }
   comment[commentLen+1]=0; commentLen++;
   if((commentLen % 2)==1) commentLen++;
+	*/
 
-
-  timestretch = .01f * GetPrivateProfileFloat(sec,"Stretch",100.0,dsfile);
-  if(timestretch<0.2f) timestretch=0.2f;
-  if(timestretch>10.f) timestretch=10.f;
+	timestretch = .01f * GetPrivateProfileFloat(sec,"Stretch",100.0,dsfile);
+	timestretch = min(max(timestretch, 0.2f), 10.f); //C++17: clamp(timestretch, 0.2f, 10.f);
   // the unit of envelope lengths is a sample in 44100Hz sample rate, so correct it
   timestretch *= Fs / 44100.f;
 
-  DGain = 1.0f; //leave this here!
   DGain = (float)powf(10.0, 0.05 * GetPrivateProfileFloat(sec,"Level",0,dsfile));
 
   MasterTune = GetPrivateProfileFloat(sec,"Tuning",0.0,dsfile);
@@ -381,10 +356,10 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   //read noise parameters
   strcpy(sec, "Noise");
   NoiseOn = chkOn[1] = GetPrivateProfileBool(sec,"On",0,dsfile);
-  sliLev[1] = GetPrivateProfileInt(sec,"Level",0,dsfile);
+  Level[1] = GetPrivateProfileInt(sec,"Level",0,dsfile);
   NoiseSlope =  GetPrivateProfileInt(sec,"Slope",0,dsfile);
   GetEnv(ENV_NOISE, sec, "Envelope", dsfile);
-  NoiseLevel = (float)(sliLev[1] * sliLev[1]);
+  NoiseLevel = (float)(Level[1] * Level[1]);
   if(NoiseSlope<0)
   {
 	  a = 1.f + (NoiseSlope / 105.f);
@@ -405,8 +380,8 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   //read tone parameters
   strcpy(sec, "Tone");
   ToneOn = chkOn[0] = GetPrivateProfileBool(sec,"On",0,dsfile);
-  sliLev[0] = GetPrivateProfileInt(sec,"Level",128,dsfile);
-  ToneLevel = (float)(sliLev[0] * sliLev[0]);
+  Level[0] = GetPrivateProfileInt(sec,"Level",128,dsfile);
+  ToneLevel = (float)(Level[0] * Level[0]);
   GetEnv(ENV_TONE, sec, "Envelope", dsfile);
   F1 = MasterTune * TwoPi * GetPrivateProfileFloat(sec,"F1",200.0,dsfile) / Fs;
   F1 = max(F1,0.001f); //to prevent overtone ratio div0
@@ -415,9 +390,9 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   if(TDroopRate>0.f)
   {
     TDroopRate = (float)powf(10.0f, (TDroopRate - 20.0f) / 30.0f);
-    TDroopRate = TDroopRate * -4.f / envData[ENV_TONE][MAX];
+    TDroopRate = TDroopRate * -4.f / envData[ENV_TONE][LAST];
     TDroop = 1;
-    F2 = F1+((F2-F1)/(1.f-(float)exp(TDroopRate * envData[ENV_TONE][MAX])));
+    F2 = F1+((F2-F1)/(1.f-(float)exp(TDroopRate * envData[ENV_TONE][LAST])));
     ddF = F1 - F2;
   }
   else ddF = F2-F1;
@@ -427,8 +402,8 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   //read overtone parameters
   strcpy(sec, "Overtones");
   OvertonesOn = chkOn[2] = GetPrivateProfileBool(sec,"On",0,dsfile); 
-  sliLev[2] = GetPrivateProfileInt(sec,"Level",128,dsfile);
-  OL = (float)(sliLev[2] * sliLev[2]);
+  Level[2] = GetPrivateProfileInt(sec,"Level",128,dsfile);
+  OL = (float)(Level[2] * Level[2]);
   GetEnv(ENV_OVERTONE1, sec, "Envelope1", dsfile);
   GetEnv(ENV_OVERTONE2, sec, "Envelope2", dsfile);
   OMode = GetPrivateProfileInt(sec,"Method",2,dsfile);
@@ -460,8 +435,8 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
   //read noise band parameters
   strcpy(sec, "NoiseBand");
   Band1On =  chkOn[3] = GetPrivateProfileBool(sec,"On",0,dsfile); 
-  sliLev[3] = GetPrivateProfileInt(sec,"Level",128,dsfile);
-  BL = (float)(sliLev[3] * sliLev[3]);
+  Level[3] = GetPrivateProfileInt(sec,"Level",128,dsfile);
+  BL = (float)(Level[3] * Level[3]);
   BF = MasterTune * TwoPi * GetPrivateProfileFloat(sec,"F",1000.0,dsfile) / Fs;
   BPhi = TwoPi / 8.f;
   GetEnv(ENV_NOISEBAND, sec, "Envelope", dsfile);
@@ -472,8 +447,8 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
 
   strcpy(sec, "NoiseBand2");
   Band2On = chkOn[4] = GetPrivateProfileBool(sec,"On",0,dsfile); 
-  sliLev[4] = GetPrivateProfileInt(sec,"Level",128,dsfile);
-  BL2 = (float)(sliLev[4] * sliLev[4]);
+  Level[4] = GetPrivateProfileInt(sec,"Level",128,dsfile);
+  BL2 = (float)(Level[4] * Level[4]);
   BF2 = MasterTune * TwoPi * GetPrivateProfileFloat(sec,"F",1000.0,dsfile) / Fs;
   BPhi2 = TwoPi / 8.f;
   GetEnv(ENV_NOISEBAND2, sec, "Envelope", dsfile);
@@ -535,7 +510,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
         TT = a * x[0] + b * x[1] + c * x[2] + d * TT;
         DF[t - tpos] = TT * g * envData[ENV_NOISE][ENV];
       }
-      if(t>=envData[ENV_NOISE][MAX]) NoiseOn=false;
+      if(t>=envData[ENV_NOISE][LAST]) NoiseOn=false;
     }
     else {
         for(j=0; j<BUFFER_SIZE; j++) DF[j]=0.f;
@@ -552,7 +527,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
       else
       {
         for(t=tpos; t<=tplus; t++)
-          phi[t - tpos] = F1 + (t / envData[ENV_TONE][MAX]) * ddF;
+          phi[t - tpos] = F1 + (t / envData[ENV_TONE][LAST]) * ddF;
       }
       for(t=tpos; t<=tplus; t++)
       {
@@ -563,7 +538,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
         Tphi = Tphi + phi[totmp];
         DF[totmp] += ToneLevel * envData[ENV_TONE][ENV] * (float)sin(fmod(Tphi,TwoPi));//overflow?
       }
-      if(t>=envData[ENV_TONE][MAX]) ToneOn=false;
+      if(t>=envData[ENV_TONE][LAST]) ToneOn=false;
     }
     else for(j=0; j<BUFFER_SIZE; j++) phi[j]=F2; //for overtone sync
 
@@ -579,7 +554,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
         botmp = t - tpos;
         DF[botmp] = DF[botmp] + (float)cos(fmod(BPhi,TwoPi)) * envData[ENV_NOISEBAND][ENV] * BL;
       }
-      if(t>=envData[ENV_NOISEBAND][MAX]) Band1On=false;
+      if(t>=envData[ENV_NOISEBAND][LAST]) Band1On=false;
     }
 
     if(Band2On) //noise band 2
@@ -594,7 +569,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
         botmp = t - tpos;
         DF[botmp] = DF[botmp] + (float)cos(fmod(BPhi2,TwoPi)) * envData[ENV_NOISEBAND2][ENV] * BL2;
       }
-      if(t>=envData[ENV_NOISEBAND2][MAX]) Band2On=false;
+      if(t>=envData[ENV_NOISEBAND2][LAST]) Band2On=false;
     }
 
 
@@ -606,7 +581,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
           envData[ENV_OVERTONE1][ENV] = envData[ENV_OVERTONE1][ENV] + envData[ENV_OVERTONE1][dENV];
         else
         {
-          if(t>=envData[ENV_OVERTONE1][MAX]) //wait for OT2
+          if(t>=envData[ENV_OVERTONE1][LAST]) //wait for OT2
           {
             envData[ENV_OVERTONE1][ENV] = 0;
             envData[ENV_OVERTONE1][dENV] = 0;
@@ -619,7 +594,7 @@ int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sa
           envData[ENV_OVERTONE2][ENV] = envData[ENV_OVERTONE2][ENV] + envData[ENV_OVERTONE2][dENV];
         else
         {
-          if(t>=envData[ENV_OVERTONE2][MAX]) //wait for OT1
+          if(t>=envData[ENV_OVERTONE2][LAST]) //wait for OT1
           {
             envData[ENV_OVERTONE2][ENV] = 0;
             envData[ENV_OVERTONE2][dENV] = 0;
