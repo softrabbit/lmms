@@ -24,8 +24,8 @@
  */
 
 
-#ifndef _DRUMSYNTH_H__
-#define _DRUMSYNTH_H__
+#ifndef _DRUMSYNTHLIVE_H__
+#define _DRUMSYNTHLIVE_H__
 
 #include <stdint.h>
 #include <sstream>
@@ -35,9 +35,9 @@
 class QString;
 using namespace std;
 
-class DrumSynth {
+class DrumSynthLive {
     public:
-        DrumSynth() {};
+        DrumSynthLive() {};
         int GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs);
 
     private:
@@ -59,6 +59,7 @@ class DrumSynth {
 	const int ENV_NOISEBAND2 = 6;
 	const int ENV_FILTER = 7;
 
+	const int BUFFER_SIZE = 1200;  // Identical results not promised if this is changed
 
 	float timestretch;         // overall time scaling
 

@@ -1,5 +1,7 @@
-#include <cstdlib>
 #include "DrumSynthLive.h"
+#include "DrumSynth.h"
+
+#include <cstdlib>
 #include <sys/time.h>
 
 #include <QString>
@@ -23,22 +25,36 @@ int main(int argc, char **argv) {
 		if(QString(argv[2]) == "timing") mode = 1;		
 	}
 
-	DrumSynth D = DrumSynth();
+	DrumSynthLive D  = DrumSynthLive();
+	DrumSynth     D0 = DrumSynth();
+	
 	int16_t *buffer;
 
 	if(mode == 1) {
-		const int runs = 5;
+		const int runs = 100; // Enough to give usable times on my system...
 		struct timespec start,end;
-		long nanosecs = 0;
+		long new_ns = 0;
+		// Measure render speed for new version
 		for(int i=0; i<runs; ++i) {
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
 			D.GetDSFileSamples(dsFile, buffer, 1, 48000);
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 			free(buffer);
-			nanosecs += (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
+			new_ns += (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
 		}
-		
-		cout << setprecision(9) << fixed << dsFile.toStdString() << "\t" << nanosecs/runs << endl;
+		// ...and then for old
+		long old_ns = 0;
+		for(int i=0; i<runs; ++i) {
+			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &start);
+			D0.GetDSFileSamples(dsFile, buffer, 1, 48000);
+			clock_gettime(CLOCK_THREAD_CPUTIME_ID, &end);
+			free(buffer);
+			old_ns += (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
+		}
+
+
+		cout << setprecision(9) << fixed << dsFile.toStdString() << "\t" << new_ns << "\t"
+		     << old_ns << "\t" << setprecision(2) << (double)new_ns/old_ns << endl;
 	} else {
 		int L = D.GetDSFileSamples(dsFile, buffer, 1, 48000);
 		unsigned int checksum = 0;

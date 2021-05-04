@@ -50,9 +50,9 @@ using namespace std;
 #define WORD  __u16
 #define DWORD __u32
 
-float envpts[8][3][32];    // envelope/time-level/point, this didn't agree with being moved into the .h file (?)
+float _envpts[8][3][32];    // envelope/time-level/point, this didn't agree with being moved into the .h file (?)
 
-int DrumSynth::LongestEnv(void)
+int DrumSynthLive::LongestEnv(void)
 {
   long e, eon, p;
   float l=0.f;
@@ -63,17 +63,17 @@ int DrumSynth::LongestEnv(void)
     if(eon>2) eon=eon-1;
 
     p = 0;
-    while (envpts[e][0][p + 1] >= 0.f) p++;
-    envData[e][LAST] = envpts[e][0][p] * timestretch;
+    while (_envpts[e][0][p + 1] >= 0.f) p++;
+    envData[e][LAST] = _envpts[e][0][p] * timestretch;
     if(chkOn[eon]) l = max(l, envData[e][LAST]);
   }
   //l *= timestretch;
 
-  return 2400 + (1200 * (int)(l / 1200)); // Does this have any relation to the buffer size???
+  return BUFFER_SIZE * 2 + (BUFFER_SIZE * (int)(l / BUFFER_SIZE));
 }
 
 
-float DrumSynth::LoudestEnv(void)
+float DrumSynthLive::LoudestEnv(void)
 {
   float loudest=0.f;
   int i=0;
@@ -87,16 +87,16 @@ float DrumSynth::LoudestEnv(void)
 }
 
 
-void DrumSynth::UpdateEnv(int e, long t)
+void DrumSynthLive::UpdateEnv(int e, long t)
 {
   float endEnv, dT;
                                                              //0.2's added
-  envData[e][NEXTT] = envpts[e][0][(long)(envData[e][PNT] + 1.f)] * timestretch; //get next point
+  envData[e][NEXTT] = _envpts[e][0][(long)(envData[e][PNT] + 1.f)] * timestretch; //get next point
   if(envData[e][NEXTT] < 0) {
 	  envData[e][NEXTT] = 442000 * timestretch; //if end point, hold
   }
-  envData[e][ENV] = envpts[e][1][(long)(envData[e][PNT] + 0.f)] * 0.01f; //this level
-  endEnv = envpts[e][1][(long)(envData[e][PNT] + 1.f)] * 0.01f;          //next level
+  envData[e][ENV] = _envpts[e][1][(long)(envData[e][PNT] + 0.f)] * 0.01f; //this level
+  endEnv = _envpts[e][1][(long)(envData[e][PNT] + 1.f)] * 0.01f;          //next level
   dT = envData[e][NEXTT] - (float)t;
   dT = max(dT, 1.0f);
   envData[e][dENV] = (endEnv - envData[e][ENV]) / dT;
@@ -104,7 +104,7 @@ void DrumSynth::UpdateEnv(int e, long t)
 }
 
 
-void DrumSynth::GetEnv(int env, const char *sec, const char *key, QString ini)
+void DrumSynthLive::GetEnv(int env, const char *sec, const char *key, QString ini)
 {
   char en[256], s[8];
   int i=0, o=0, ep=0;
@@ -118,25 +118,25 @@ void DrumSynth::GetEnv(int env, const char *sec, const char *key, QString ini)
   {
     if(en[i] == ',')
     {
-      if(sscanf(s, "%f", &envpts[env][0][ep])==0) envpts[env][0][ep] = 0.f;
+      if(sscanf(s, "%f", &_envpts[env][0][ep])==0) _envpts[env][0][ep] = 0.f;
       o=0;
     }
     else if(en[i] == ' ')
     {
-      if(sscanf(s, "%f", &envpts[env][1][ep])==0) envpts[env][1][ep] = 0.f;
+      if(sscanf(s, "%f", &_envpts[env][1][ep])==0) _envpts[env][1][ep] = 0.f;
       o=0; ep++;
     }
     else { s[o]=en[i]; o++; s[o]=0; }
     i++;
   }
-  if(sscanf(s, "%f", &envpts[env][1][ep])==0) envpts[env][1][ep] = 0.f;
-  envpts[env][0][ep + 1] = -1;
+  if(sscanf(s, "%f", &_envpts[env][1][ep])==0) _envpts[env][1][ep] = 0.f;
+  _envpts[env][0][ep + 1] = -1;
 
-  envData[env][LAST] = envpts[env][0][ep];
+  envData[env][LAST] = _envpts[env][0][ep];
 }
 
 
-float DrumSynth::waveform(float ph, int form)
+float DrumSynthLive::waveform(float ph, int form)
 {
   float w;
 
@@ -161,7 +161,7 @@ float DrumSynth::waveform(float ph, int form)
 }
 
 
-QByteArray DrumSynth::LoadFile(QString file)
+QByteArray DrumSynthLive::LoadFile(QString file)
 {
     // Use QFile to handle unicode file name on Windows
     QFile f(file);
@@ -170,7 +170,7 @@ QByteArray DrumSynth::LoadFile(QString file)
 }
 
 
-int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file)
+int DrumSynthLive::GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file)
 {
     bool inSection = false;
     char *line;
@@ -235,7 +235,7 @@ int DrumSynth::GetPrivateProfileString(const char *sec, const char *key, const c
     return len;
 }
 
-int DrumSynth::GetPrivateProfileInt(const char *sec, const char *key, int def, QString file)
+int DrumSynthLive::GetPrivateProfileInt(const char *sec, const char *key, int def, QString file)
 {
   char tmp[16];
   int i=0;
@@ -246,7 +246,7 @@ int DrumSynth::GetPrivateProfileInt(const char *sec, const char *key, int def, Q
   return i;
 }
 
-bool DrumSynth::GetPrivateProfileBool(const char *sec, const char *key, int def, QString file)
+bool DrumSynthLive::GetPrivateProfileBool(const char *sec, const char *key, int def, QString file)
 {
   char tmp[16];
   int i=0;
@@ -257,7 +257,7 @@ bool DrumSynth::GetPrivateProfileBool(const char *sec, const char *key, int def,
   return i!=0;
 }
 
-float DrumSynth::GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file)
+float DrumSynthLive::GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file)
 {
     char tmp[16];
     float f=0.f;
@@ -274,10 +274,9 @@ float DrumSynth::GetPrivateProfileFloat(const char *sec, const char *key, float 
 //  an associative array or something once we have a datastructure to load in to.
 //  llama
 
-int DrumSynth::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
+int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
 {
 
-	const int BUFFER_SIZE = 1200;
 	float DF[BUFFER_SIZE];            // Buffer audio is rendered into
 	float phi[BUFFER_SIZE];           // Phase buffer... something?
   long  wavewords;                  // Counter
