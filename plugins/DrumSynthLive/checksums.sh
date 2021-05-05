@@ -9,7 +9,7 @@ if /usr/bin/diff -q checksums.txt $tmpfile ; then
     echo "Checksums OK"
 else
     echo "Checksums differ:"
-    /usr/bin/diff checksums.txt $tmpfile
+    /usr/bin/diff -y checksums.txt $tmpfile |less
 fi
 rm $tmpfile
 
