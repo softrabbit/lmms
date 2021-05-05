@@ -35,6 +35,7 @@
 
 #include <QFile>
 #include <QDebug>
+#include <QSettings>
 
 #ifdef LMMS_BUILD_WIN32
 #define powf pow
@@ -172,8 +173,13 @@ QByteArray DrumSynthLive::LoadFile(QString file)
     return f.readAll().constData();
 }
 
-bool DrumSynthLive::Parse(QByteArray ini)
+bool DrumSynthLive::Parse(QString file)
 {
+	IniData = new QSettings(file, QSettings::IniFormat);
+
+	/*QStringList keys = IniData->allKeys();
+	for (int i = 0; i < keys.size(); ++i)
+	qDebug() << keys.at(i) << " = " << IniData->value(keys.at(i)); */
 	return true;
 }
 
@@ -191,7 +197,6 @@ int DrumSynthLive::GetPrivateProfileString(const QString sec, const QString key,
 
     if(dat == nullptr) {
             dat = LoadFile(file);
-	    Parse(dat);
             is.str(string(dat.constData(), dat.size()));
     }
     
@@ -247,35 +252,39 @@ int DrumSynthLive::GetPrivateProfileString(const QString sec, const QString key,
 
 int DrumSynthLive::GetPrivateProfileInt(const QString sec, const QString key, int def, QString file)
 {
-  char tmp[16];
-  int i=0;
-
-  GetPrivateProfileString(sec, key, "", tmp, sizeof(tmp), file);
-  sscanf(tmp, "%d", &i); if(tmp[0]==0) i=def;
-
-  return i;
+  // "General" sections are special...
+	if(sec=="General") {
+		return IniData->value(key,def).toInt();
+  }
+  return IniData->value(sec+"/"+key,def).toInt();
 }
 
 bool DrumSynthLive::GetPrivateProfileBool(const QString sec, const QString key, int def, QString file)
 {
-  char tmp[16];
+				/*char tmp[16];
   int i=0;
 
   GetPrivateProfileString(sec, key, "", tmp, sizeof(tmp), file);
   sscanf(tmp, "%d", &i); if(tmp[0]==0) i=def;
 
-  return i!=0;
+  return i!=0; */
+				return GetPrivateProfileInt(sec, key, def, file) != 0;
 }
 
 float DrumSynthLive::GetPrivateProfileFloat(const QString sec, const QString key, float def, QString file)
 {
-    char tmp[16];
+	/*char tmp[16];
     float f=0.f;
 
     GetPrivateProfileString(sec, key, "", tmp, sizeof(tmp), file);
     sscanf(tmp, "%f", &f); if(tmp[0]==0) f=def;
 
-    return f;
+    return f; */
+	if(sec=="General") {
+		return IniData->value(key,def).toFloat();
+  }
+  return IniData->value(sec+"/"+key,def).toFloat();
+
 }
 
 
@@ -286,7 +295,8 @@ float DrumSynthLive::GetPrivateProfileFloat(const QString sec, const QString key
 
 int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
 {
-
+	Parse(dsfile);
+	
 	float DF[BUFFER_SIZE];            // Buffer audio is rendered into
 	float phi[BUFFER_SIZE];           // Phase buffer... something?
   long  wavewords;                  // Counter

@@ -1,4 +1,4 @@
- #!/bin/bash
+#!/bin/bash
 
 tmpfile=/tmp/drumsynthtimings.$(date -Iseconds)
 #files=$(/usr/bin/awk '{print $1}' <timings.txt )

@@ -31,6 +31,7 @@
 #include <sstream>
 #include "lmms_basics.h"
 #include <QFile>
+#include <QSettings>
 
 class QString;
 using namespace std;
@@ -75,7 +76,7 @@ class DrumSynthLive {
         float waveform(float ph, int form);
 
         QByteArray LoadFile(QString file);
-	bool Parse(QByteArray ini);
+	bool Parse(QString file);
         int GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size, QString file);
         int GetPrivateProfileInt(const QString sec, const QString key, int def, QString file);
 	bool GetPrivateProfileBool(const QString sec, const QString key, int def, QString file);
@@ -83,6 +84,7 @@ class DrumSynthLive {
 
 	QByteArray dat;	
 	stringstream is;
+	QSettings *IniData;
 };
 
 #endif
