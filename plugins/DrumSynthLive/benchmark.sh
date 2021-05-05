@@ -1,16 +1,19 @@
  #!/bin/bash
 
-tmpfile=$(mktemp /tmp/drumsynthtest.XXXXX)
-files=$(/usr/bin/awk '{print $1}' <checksums.txt )
+tmpfile=/tmp/drumsynthtimings.$(date -Iseconds)
+#files=$(/usr/bin/awk '{print $1}' <timings.txt )
+lines=$(wc -l timings.txt |sed 's/timings.txt//')
 
-while read f t1 ; do
+n=1
+while read f ; do
     line=$(./test $f timing)
-    echo $line " " $t1 
-done <timings.txt >>$tmpfile
-awk '{printf("%d %d %3.2f%% %s\n",$2, $3, ($3/$2)*100, $1);}' <$tmpfile |less
+    echo -ne '\e[K'
+    echo "("$n"/"$lines")" $line
+    echo -ne '\eM'
+    ((n++))
+    echo $line >> $tmpfile
+done <timings.txt
+echo -e "\nResults saved in file $tmpfile"
 
-
-
-rm $tmpfile
 
 
