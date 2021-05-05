@@ -70,15 +70,16 @@ class DrumSynthLive {
         float LoudestEnv(void);
         int   LongestEnv(void);
         void  UpdateEnv(int e, long t);
-        void  GetEnv(int env, const char *sec, const char *key, QString ini);
+        void  GetEnv(int env, const QString sec, const QString key, QString ini);
 
         float waveform(float ph, int form);
 
         QByteArray LoadFile(QString file);
-        int GetPrivateProfileString(const char *sec, const char *key, const char *def, char *buffer, int size, QString file);
-        int GetPrivateProfileInt(const char *sec, const char *key, int def, QString file);
-	bool GetPrivateProfileBool(const char *sec, const char *key, int def, QString file);
-        float GetPrivateProfileFloat(const char *sec, const char *key, float def, QString file);
+	bool Parse(QByteArray ini);
+        int GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size, QString file);
+        int GetPrivateProfileInt(const QString sec, const QString key, int def, QString file);
+	bool GetPrivateProfileBool(const QString sec, const QString key, int def, QString file);
+        float GetPrivateProfileFloat(const QString sec, const QString key, float def, QString file);
 
 	QByteArray dat;	
 	stringstream is;
