@@ -31,6 +31,7 @@ int main(int argc, char **argv) {
 	int16_t *buffer;
 
 	if(mode == 1) {
+		// Benchmark mode
 		const int runs = 100; // Enough to give usable times on my system...
 		struct timespec start,end;
 		long new_ns = 0;
@@ -55,13 +56,29 @@ int main(int argc, char **argv) {
 
 		cout << setprecision(9) << fixed << dsFile.toStdString() << "\t" << new_ns << "\t"
 		     << old_ns << "\t" << setprecision(2) << (double)new_ns/old_ns << endl;
+		return EXIT_SUCCESS;
 	} else {
 		int L = D.GetDSFileSamples(dsFile, buffer, 1, 48000);
 		unsigned int checksum = 0;
 		for(int i = 0; i<L ; ++i) {
 			checksum += abs(buffer[i]);
 		}
-		cout << dsFile.toStdString() << "\t" << L << "\t" << checksum << endl;
+		free(buffer);
+		
+		srand(1); // Make the old code use the same fixed random sequence as the new
+		int L0 = D0.GetDSFileSamples(dsFile, buffer, 1, 48000);
+		unsigned int checksum0 = 0;
+		for(int i = 0; i<L0 ; ++i) {
+			checksum0 += abs(buffer[i]);
+		}
+		if(checksum == checksum0 && L == L0 ){
+			cout << dsFile.toStdString() << "\t" << L << "\t" << checksum << "\tOK" <<endl;
+			return EXIT_SUCCESS;
+		} else {
+			cout << dsFile.toStdString() << "\t" << L << "\t" << checksum <<
+				"\tFAIL, expected: " << L0 << "\t" << checksum0 << endl;
+			return EXIT_FAILURE;
+		}			
 	}
 	
 	return EXIT_SUCCESS;

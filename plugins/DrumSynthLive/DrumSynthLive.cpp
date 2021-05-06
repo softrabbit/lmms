@@ -61,8 +61,9 @@ int DrumSynthLive::LongestEnv(void)
 
   for(e=1; e<7; e++) // The filter is excluded here, because... it's not a sound generator?
   {
-    eon = e - 1;
-    if(eon>2) eon=eon-1;
+
+    eon = e - 1; 
+    if(eon>2) eon=eon-1; // WTF?
 
     p = 0;
     while (_envpts[e][0][p + 1] >= 0.f) p++;
@@ -110,33 +111,30 @@ void DrumSynthLive::UpdateEnv(int e, long t)
 
 void DrumSynthLive::GetEnv(int env, const QString sec, const QString key, QString ini)
 {
-  char en[256], s[8];
-  int i=0, o=0, ep=0;
-  GetPrivateProfileString(sec, key, "0,0 100,0", en, sizeof(en), ini);
+	// We get the string split on commas, in a QStringList.
+	// i.e. "0,10 20,30" becomes {"0", "10 20", "30"}
+	QStringList qsl;
+	if(sec=="General") {
+		qsl = IniData->value(key, "0,0 100,0").toStringList();
+  } else {
+    qsl = IniData->value(sec+"/"+key, "0,0 100,0").toStringList();
+	}
+	QString str = qsl.join(",");
+	qsl = str.split(" ");
 
-  //be safe!
-  en[255]=0;
-  s[0]=0;
-
-  while(en[i]!=0)
-  {
-    if(en[i] == ',')
-    {
-      if(sscanf(s, "%f", &_envpts[env][0][ep])==0) _envpts[env][0][ep] = 0.f;
-      o=0;
-    }
-    else if(en[i] == ' ')
-    {
-      if(sscanf(s, "%f", &_envpts[env][1][ep])==0) _envpts[env][1][ep] = 0.f;
-      o=0; ep++;
-    }
-    else { s[o]=en[i]; o++; s[o]=0; }
-    i++;
-  }
-  if(sscanf(s, "%f", &_envpts[env][1][ep])==0) _envpts[env][1][ep] = 0.f;
-  _envpts[env][0][ep + 1] = -1;
-
-  envData[env].last = _envpts[env][0][ep];
+	// Now we should have {"0,10", "20, 30"}
+	int n;
+	for(n=0; n<qsl.size() && n<32; ++n) {
+		QStringList pair = qsl.at(n).split(",");
+		_envpts[env][0][n] = pair.at(0).toFloat();
+		_envpts[env][1][n] = pair.at(1).toFloat();
+	}
+	envData[env].last = _envpts[env][0][n-1];
+	// Fill the rest with negative values
+	for( ; n<32; ++n) {
+		_envpts[env][0][n] = -1.0;
+		_envpts[env][1][n] = -1.0;
+	}
 }
 
 
@@ -185,71 +183,17 @@ bool DrumSynthLive::Parse(QString file)
 
 
 
-int DrumSynthLive::GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size, QString file)
-{
-    bool inSection = false;
-    char *line;
-    char *k, *b;
-    int len = 0;
-    // This up from 200, because envelopes were getting cut off
-    const int lineLength = 400;
-    line = (char*)malloc(lineLength);
-
-    if(dat == nullptr) {
-            dat = LoadFile(file);
-            is.str(string(dat.constData(), dat.size()));
-    }
-    
-    is.seekg(0, ios_base::beg);
-    while (is.good()) {
-        if (!inSection) {
-            is.ignore( numeric_limits<streamsize>::max(), '[');
-
-            if (!is.eof()) {
-                is.getline(line, lineLength, ']');
-                if (sec.compare(line, Qt::CaseInsensitive)==0) {
-                    inSection = true;
-                }
-            }
-        }
-        else if (!is.eof()) {
-            is.getline(line, lineLength);
-            if (line[0] == '[')
-                break;
-
-            k = strtok(line, " \t=");
-            b = strtok(NULL, "\n\r\0");
-
-            if (k != 0 && key.compare(k, Qt::CaseInsensitive)==0) {
-                if (b==0) {
-                    len = 0;
-                    buffer[0] = 0;
-                }
-                else {
-                    k = (char *)(b + strlen(b)-1);
-                    while ( (k>=b) && (*k==' ' || *k=='\t') )
-                        --k;
-                    *(k+1) = '\0';
-
-                    len = strlen(b);
-                    if (len > size-1) len = size-1;
-                    strncpy(buffer, b, len+1);
-                }
-                break;
-            }
-        }
-    }
-
-    if (len == 0) {
-	len = def.length();
-        strncpy(buffer, def.toLocal8Bit().constData(), size);
-    }
-
-    free(line);
-    // qDebug() << sec << "." << key << " = " << QString(buffer);
-    return len;
+int DrumSynthLive::GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size, QString file) {
+  QString str;
+	if(sec=="General") {
+		str = IniData->value(key,def).toString();
+  } else {
+    str = IniData->value(sec+"/"+key,def).toString();
+	}
+	//qDebug() << str;
+	strncpy(buffer, str.toLocal8Bit().data(), size);
+	return str.length();
 }
-
 int DrumSynthLive::GetPrivateProfileInt(const QString sec, const QString key, int def, QString file)
 {
   // "General" sections are special...
@@ -261,25 +205,11 @@ int DrumSynthLive::GetPrivateProfileInt(const QString sec, const QString key, in
 
 bool DrumSynthLive::GetPrivateProfileBool(const QString sec, const QString key, int def, QString file)
 {
-				/*char tmp[16];
-  int i=0;
-
-  GetPrivateProfileString(sec, key, "", tmp, sizeof(tmp), file);
-  sscanf(tmp, "%d", &i); if(tmp[0]==0) i=def;
-
-  return i!=0; */
 				return GetPrivateProfileInt(sec, key, def, file) != 0;
 }
 
 float DrumSynthLive::GetPrivateProfileFloat(const QString sec, const QString key, float def, QString file)
 {
-	/*char tmp[16];
-    float f=0.f;
-
-    GetPrivateProfileString(sec, key, "", tmp, sizeof(tmp), file);
-    sscanf(tmp, "%f", &f); if(tmp[0]==0) f=def;
-
-    return f; */
 	if(sec=="General") {
 		return IniData->value(key,def).toFloat();
   }
@@ -494,6 +424,7 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
 	  envData[i].next=0;
 	  envData[i].pointer=0;
   }
+
   Length = LongestEnv();
 
   //allocate the buffer
