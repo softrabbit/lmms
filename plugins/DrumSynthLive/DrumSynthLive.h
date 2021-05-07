@@ -39,11 +39,11 @@ using namespace std;
 class DrumSynthLive {
     public:
         DrumSynthLive() {};
-        int GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs);
-
+        int GetSamples(int16_t *&wave, int channels, sample_rate_t Fs);
+	bool LoadFile(QString file);
     private:
 	const float   TwoPi =  6.2831853f;
-
+	
 	struct envstatus {
 		float last;          // Time of last envelope point
 		float value;         // Envelope value
@@ -71,16 +71,14 @@ class DrumSynthLive {
         float LoudestEnv(void);
         int   LongestEnv(void);
         void  UpdateEnv(int e, long t);
-        void  GetEnv(int env, const QString sec, const QString key, QString ini);
+        void  GetEnv(int env, const QString key);
 
         float waveform(float ph, int form);
 
-        QByteArray LoadFile(QString file);
-	bool Parse(QString file);
-        int GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size);
-        int GetPrivateProfileInt(const QString sec, const QString key, int def);
-	bool GetPrivateProfileBool(const QString sec, const QString key, int def);
-        float GetPrivateProfileFloat(const QString sec, const QString key, float def);
+        int qsString(const QString key, const QString def, char *buffer, int size);
+        int qsInt(const QString key, int def);
+	bool qsBool(const QString key, int def);
+        float qsFloat(const QString key, float def);
 
 	QSettings *IniData;
 };

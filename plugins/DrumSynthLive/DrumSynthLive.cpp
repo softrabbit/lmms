@@ -61,9 +61,11 @@ int DrumSynthLive::LongestEnv(void)
 
   for(e=1; e<7; e++) // The filter is excluded here, because... it's not a sound generator?
   {
-
+	  
+    // adjust numbering, of course it's different between
+    // envelopes and on/off switches for the sections :D
     eon = e - 1; 
-    if(eon>2) eon=eon-1; // WTF?
+    if(eon>2) eon=eon-1; 
 
     p = 0;
     while (_envpts[e][0][p + 1] >= 0.f) p++;
@@ -109,16 +111,11 @@ void DrumSynthLive::UpdateEnv(int e, long t)
 }
 
 
-void DrumSynthLive::GetEnv(int env, const QString sec, const QString key, QString ini)
+void DrumSynthLive::GetEnv(int env, const QString key)
 {
 	// We get the string split on commas, in a QStringList.
 	// i.e. "0,10 20,30" becomes {"0", "10 20", "30"}
-	QStringList qsl;
-	if(sec=="General") {
-		qsl = IniData->value(key, "0,0 100,0").toStringList();
-  } else {
-    qsl = IniData->value(sec+"/"+key, "0,0 100,0").toStringList();
-	}
+	QStringList qsl = IniData->value(key, "0,0 100,0").toStringList();
 	QString str = qsl.join(",");
 	qsl = str.split(" ");
 
@@ -160,68 +157,44 @@ float DrumSynthLive::waveform(float ph, int form)
 }
 
 
-QByteArray DrumSynthLive::LoadFile(QString file)
-{
-    // Use QFile to handle unicode file name on Windows
-    QFile f(file);
-    f.open(QIODevice::ReadOnly);
-    return f.readAll().constData();
-}
-
-bool DrumSynthLive::Parse(QString file)
+// .ini file handling, good thing there is a QSettings class that handles the format.
+// NB: the ini section General is represented by nothing in the keys when calling the
+// reader functions, i.e. the key "xxx" under [General] is just plain "xxx",
+// while it would be "othersection/xxx" under [othersection]
+bool DrumSynthLive::LoadFile(QString file)
 {
   IniData = new QSettings(file, QSettings::IniFormat);
   return true;
 }
 
-
-
-int DrumSynthLive::GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size) {
+inline int DrumSynthLive::qsString(const QString key, const QString def, char *buffer, int size) {
   QString str;
-  if(sec=="General") {
-    str = IniData->value(key,def).toString();
-  } else {
-    str = IniData->value(sec+"/"+key,def).toString();
-  }
+  str = IniData->value(key,def).toString();
+
   strncpy(buffer, str.toLocal8Bit().data(), size);
   return str.length();
 }
-int DrumSynthLive::GetPrivateProfileInt(const QString sec, const QString key, int def)
+
+inline int DrumSynthLive::qsInt(const QString key, int def)
 {
-  int r;
-  if(sec=="General") {
-    r = IniData->value(key,def).toInt();
-  } else {
-    r = IniData->value(sec+"/"+key,def).toInt();
-  }
-  return r;
+  return IniData->value(key,def).toInt();
 }
 
-bool DrumSynthLive::GetPrivateProfileBool(const QString sec, const QString key, int def)
+inline bool DrumSynthLive::qsBool(const QString key, int def)
 {
-  return GetPrivateProfileInt(sec, key, def) != 0;
+  return IniData->value(key,def).toBool();
 }
 
-float DrumSynthLive::GetPrivateProfileFloat(const QString sec, const QString key, float def)
+inline float DrumSynthLive::qsFloat(const QString key, float def)
 {
-  float f;
-  if(sec=="General") {
-    f = IniData->value(key,def).toFloat();
-  } else {
-    f = IniData->value(sec+"/"+key,def).toFloat();
-  }
-  return f;
+  return IniData->value(key,def).toFloat();
 }
 
 
-//  Constantly opening and scanning each file for the setting really sucks.
-//  But, the original did this, and we know it works.  Will store file into
-//  an associative array or something once we have a datastructure to load in to.
-//  llama
 
-int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels, sample_rate_t Fs)
+// Here we assume the file has been loaded and parsed in previously
+int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs)
 {
-  Parse(dsfile);
 	
   float DF[BUFFER_SIZE];            // Buffer audio is rendered into
   float phi[BUFFER_SIZE];           // Phase buffer... something?
@@ -260,7 +233,7 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
   long  DownStart, DownEnd, jj;
 
   //try to read version from input file
-  GetPrivateProfileString("General","Version","",ver,sizeof(ver));
+  qsString("Version","",ver,sizeof(ver));
   ver[9]=0;
   if(strcasecmp(ver, "DrumSynth") != 0) {return 0;} //input fail
   if(ver[11] != '1' && ver[11] != '2') {return 0;} //version fail
@@ -268,7 +241,7 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
 
   //read master parameters
 	// Comment logic not needed, left for later.
-  /* GetPrivateProfileString("General","Comment","",comment,sizeof(comment));
+  /* qsString("Comment","",comment,sizeof(comment));
   while((comment[commentLen]!=0) && (commentLen<254)) commentLen++;
   if(commentLen==0) {
 	  comment[0]=32;
@@ -279,28 +252,28 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
   if((commentLen % 2)==1) commentLen++;
 	*/
 
-	timestretch = .01f * GetPrivateProfileFloat("General","Stretch",100.0);
+	timestretch = .01f * qsFloat("Stretch",100.0);
 	timestretch = min(max(timestretch, 0.2f), 10.f); //C++17: clamp(timestretch, 0.2f, 10.f);
   // the unit of envelope lengths is a sample in 44100Hz sample rate, so correct it
   timestretch *= Fs / 44100.f;
 
-  DGain = (float)powf(10.0, 0.05 * GetPrivateProfileFloat("General","Level",0));
+  DGain = (float)powf(10.0, 0.05 * qsFloat("Level",0));
 
-  MasterTune = GetPrivateProfileFloat("General","Tuning",0.0);
+  MasterTune = qsFloat("Tuning",0.0);
   MasterTune = (float)powf(1.0594631f, MasterTune);
-  MainFilter = 2 * GetPrivateProfileInt("General","Filter",0);
-  MFres = 0.0101f * GetPrivateProfileFloat("General","Resonance",0.0);
+  MainFilter = 2 * qsInt("Filter",0);
+  MFres = 0.0101f * qsFloat("Resonance",0.0);
   MFres = (float)powf(MFres, 0.5f);
 
-  HighPass = GetPrivateProfileInt("General","HighPass",0);
-  GetEnv(ENV_FILTER, "General", "FilterEnv", dsfile);
+  HighPass = qsInt("HighPass",0);
+  GetEnv(ENV_FILTER, "FilterEnv");
 
 
   //read noise parameters
-  NoiseOn = chkOn[1] = GetPrivateProfileBool("Noise","On",0);
-  Level[1] = GetPrivateProfileInt("Noise","Level",0);
-  NoiseSlope =  GetPrivateProfileInt("Noise","Slope",0);
-  GetEnv(ENV_NOISE, "Noise", "Envelope", dsfile);
+  NoiseOn = chkOn[1] = qsBool("Noise/On",0);
+  Level[1] = qsInt("Noise/Level",0);
+  NoiseSlope =  qsInt("Noise/Slope",0);
+  GetEnv(ENV_NOISE, "Noise/Envelope");
   NoiseLevel = (float)(Level[1] * Level[1]);
   if(NoiseSlope<0)
   {
@@ -316,18 +289,18 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
 
   // Always a fixed random number sequence for now, remember to enable this option
   // when done coding...
-  //if(GetPrivateProfileBool("Noise","FixedSeq",0))
+  //if(qsBool("Noise/FixedSeq",0))
   srand(1); 
 
   //read tone parameters
-  ToneOn = chkOn[0] = GetPrivateProfileBool("Tone","On",0);
-  Level[0] = GetPrivateProfileInt("Tone","Level",128);
+  ToneOn = chkOn[0] = qsBool("Tone/On",0);
+  Level[0] = qsInt("Tone/Level",128);
   ToneLevel = (float)(Level[0] * Level[0]);
-  GetEnv(ENV_TONE, "Tone", "Envelope", dsfile);
-  F1 = MasterTune * TwoPi * GetPrivateProfileFloat("Tone","F1",200.0) / Fs;
+  GetEnv(ENV_TONE, "Tone/Envelope");
+  F1 = MasterTune * TwoPi * qsFloat("Tone/F1",200.0) / Fs;
   F1 = max(F1,0.001f); //to prevent overtone ratio div0
-  F2 = MasterTune * TwoPi * GetPrivateProfileFloat("Tone","F2",120.0) / Fs;
-  TDroopRate = GetPrivateProfileFloat("Tone","Droop",0.f);
+  F2 = MasterTune * TwoPi * qsFloat("Tone/F2",120.0) / Fs;
+  TDroopRate = qsFloat("Tone/Droop",0.f);
   if(TDroopRate>0.f)
   {
     TDroopRate = (float)powf(10.0f, (TDroopRate - 20.0f) / 30.0f);
@@ -338,30 +311,30 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
   }
   else ddF = F2-F1;
 
-  Tphi = GetPrivateProfileFloat("Tone","Phase",90.f) / 57.29578f; //degrees>radians
+  Tphi = qsFloat("Tone/Phase",90.f) / 57.29578f; //degrees>radians
 
   //read overtone parameters
-  OvertonesOn = chkOn[2] = GetPrivateProfileBool("Overtones","On",0); 
-  Level[2] = GetPrivateProfileInt("Overtones","Level",128);
+  OvertonesOn = chkOn[2] = qsBool("Overtones/On",0); 
+  Level[2] = qsInt("Overtones/Level",128);
   OL = (float)(Level[2] * Level[2]);
-  GetEnv(ENV_OVERTONE1, "Overtones", "Envelope1", dsfile);
-  GetEnv(ENV_OVERTONE2, "Overtones", "Envelope2", dsfile);
-  OMode = GetPrivateProfileInt("Overtones","Method",2);
-  OF1 = MasterTune * TwoPi * GetPrivateProfileFloat("Overtones","F1",200.0) / Fs;
-  OF2 = MasterTune * TwoPi * GetPrivateProfileFloat("Overtones","F2",120.0) / Fs;
-  OW1 = GetPrivateProfileInt("Overtones","Wave1",0);
-  OW2 = GetPrivateProfileInt("Overtones","Wave2",0);
-  OBal2 = (float)GetPrivateProfileInt("Overtones","Param",50);
+  GetEnv(ENV_OVERTONE1, "Overtones/Envelope1");
+  GetEnv(ENV_OVERTONE2, "Overtones/Envelope2");
+  OMode = qsInt("Overtones/Method",2);
+  OF1 = MasterTune * TwoPi * qsFloat("Overtones/F1",200.0) / Fs;
+  OF2 = MasterTune * TwoPi * qsFloat("Overtones/F2",120.0) / Fs;
+  OW1 = qsInt("Overtones/Wave1",0);
+  OW2 = qsInt("Overtones/Wave2",0);
+  OBal2 = (float)qsInt("Overtones/Param",50);
   ODrive = (float)powf(OBal2, 3.0f) / (float)powf(50.0f, 3.0f);
   OBal2 *= 0.01f;
   OBal1 = 1.f - OBal2;
   Ophi1 = Tphi;
   Ophi2 = Tphi;
   if(MainFilter==0)
-    MainFilter = GetPrivateProfileInt("Overtones","Filter",0);
-  if((GetPrivateProfileInt("Overtones","Track1",0)==1) && ToneOn)
+    MainFilter = qsInt("Overtones/Filter",0);
+  if((qsInt("Overtones/Track1",0)==1) && ToneOn)
   { OF1Sync = 1;  OF1 = OF1 / F1; }
-  if((GetPrivateProfileInt("Overtones","Track2",0)==1) && ToneOn)
+  if((qsInt("Overtones/Track2",0)==1) && ToneOn)
   { OF2Sync = 1;  OF2 = OF2 / F1; }
 
   OcA = 0.28f + OBal1 * OBal1;  //overtone cymbal mode
@@ -373,31 +346,31 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
   for(i=0; i<6; i++) Oc[i][0] = Oc[i][1] = Ocf1 + (Ocf2 - Ocf1) * 0.2f * (float)i;
 
   //read noise band parameters
-  Band1On =  chkOn[3] = GetPrivateProfileBool("NoiseBand","On",0); 
-  Level[3] = GetPrivateProfileInt("NoiseBand","Level",128);
+  Band1On =  chkOn[3] = qsBool("NoiseBand/On",0); 
+  Level[3] = qsInt("NoiseBand/Level",128);
   BL = (float)(Level[3] * Level[3]);
-  BF = MasterTune * TwoPi * GetPrivateProfileFloat("NoiseBand","F",1000.0) / Fs;
+  BF = MasterTune * TwoPi * qsFloat("NoiseBand/F",1000.0) / Fs;
   BPhi = TwoPi / 8.f;
-  GetEnv(ENV_NOISEBAND, "NoiseBand", "Envelope", dsfile);
-  BFStep = GetPrivateProfileInt("NoiseBand","dF",50);
+  GetEnv(ENV_NOISEBAND, "NoiseBand/Envelope");
+  BFStep = qsInt("NoiseBand/dF",50);
   BQ = (float)BFStep;
   BQ = BQ * BQ / (10000.f-6600.f*((float)sqrt(BF)-0.19f));
   BFStep = 1 + (int)((40.f - (BFStep / 2.5f)) / (BQ + 1.f + (1.f * BF)));
 
-  Band2On = chkOn[4] = GetPrivateProfileBool("NoiseBand2","On",0); 
-  Level[4] = GetPrivateProfileInt("NoiseBand2","Level",128);
+  Band2On = chkOn[4] = qsBool("NoiseBand2/On",0); 
+  Level[4] = qsInt("NoiseBand2/Level",128);
   BL2 = (float)(Level[4] * Level[4]);
-  BF2 = MasterTune * TwoPi * GetPrivateProfileFloat("NoiseBand2","F",1000.0) / Fs;
+  BF2 = MasterTune * TwoPi * qsFloat("NoiseBand2/F",1000.0) / Fs;
   BPhi2 = TwoPi / 8.f;
-  GetEnv(ENV_NOISEBAND2, "NoiseBand2", "Envelope", dsfile);
-  BFStep2 = GetPrivateProfileInt("NoiseBand2","dF",50);
+  GetEnv(ENV_NOISEBAND2, "NoiseBand2/Envelope");
+  BFStep2 = qsInt("NoiseBand2/dF",50);
   BQ2 = (float)BFStep2;
   BQ2 = BQ2 * BQ2 / (10000.f-6600.f*((float)sqrt(BF2)-0.19f));
   BFStep2 = 1 + (int)((40 - (BFStep2 / 2.5)) / (BQ2 + 1 + (1 * BF2)));
 
   //read distortion parameters
-  DistOn = chkOn[5] = GetPrivateProfileBool("Distortion","On",0); 
-  DStep = 1 + GetPrivateProfileInt("Distortion","Rate",0);
+  DistOn = chkOn[5] = qsBool("Distortion/On",0); 
+  DStep = 1 + qsInt("Distortion/Rate",0);
   if(DStep==7) DStep=20;
   if(DStep==6) DStep=10;
   if(DStep==5) DStep=8;
@@ -409,8 +382,8 @@ int DrumSynthLive::GetDSFileSamples(QString dsfile, int16_t *&wave, int channels
   {
     DAtten = DGain * (short)LoudestEnv();
     clippoint = (short)min((int)DAtten, 32700);
-    DAtten = (float)powf(2.0, 2.0 * GetPrivateProfileInt("Distortion","Bits",0));
-    DGain = DAtten * DGain * (float)powf(10.0, 0.05 * GetPrivateProfileInt("Distortion","Clipping",0));
+    DAtten = (float)powf(2.0, 2.0 * qsInt("Distortion/Bits",0));
+    DGain = DAtten * DGain * (float)powf(10.0, 0.05 * qsInt("Distortion/Clipping",0));
   }
 
   randmax = 1.f / RAND_MAX; randmax2 = 2.f * randmax;

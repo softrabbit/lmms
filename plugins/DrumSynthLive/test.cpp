@@ -36,9 +36,10 @@ int main(int argc, char **argv) {
 		struct timespec start,end;
 		long new_ns = 0;
 		// Measure render speed for new version
+		D.LoadFile(dsFile);
 		for(int i=0; i<runs; ++i) {
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
-			D.GetDSFileSamples(dsFile, buffer, 1, 48000);
+			D.GetSamples(buffer, 1, 48000);
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 			free(buffer);
 			new_ns += (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
@@ -66,8 +67,9 @@ int main(int argc, char **argv) {
 		for(int i = 0; i<L0 ; ++i) {
 			checksum0 += abs(buffer0[i]);
 		}
-		
-		int L = D.GetDSFileSamples(dsFile, buffer, 1, 48000);
+
+		D.LoadFile(dsFile);
+		int L = D.GetSamples(buffer, 1, 48000);
 		unsigned int checksum = 0;
 		for(int i = 0; i<L ; ++i) {
 			checksum += abs(buffer[i]);
