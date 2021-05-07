@@ -28,7 +28,7 @@ int main(int argc, char **argv) {
 	DrumSynthLive D  = DrumSynthLive();
 	DrumSynth     D0 = DrumSynth();
 	
-	int16_t *buffer;
+	int16_t *buffer, *buffer0;
 
 	if(mode == 1) {
 		// Benchmark mode
@@ -58,25 +58,30 @@ int main(int argc, char **argv) {
 		     << old_ns << "\t" << setprecision(2) << (double)new_ns/old_ns << endl;
 		return EXIT_SUCCESS;
 	} else {
+
+		
+		srand(1); // Make the old code use the same fixed random sequence as the new
+		int L0 = D0.GetDSFileSamples(dsFile, buffer0, 1, 48000);
+		unsigned int checksum0 = 0;
+		for(int i = 0; i<L0 ; ++i) {
+			checksum0 += abs(buffer0[i]);
+		}
+		
 		int L = D.GetDSFileSamples(dsFile, buffer, 1, 48000);
 		unsigned int checksum = 0;
 		for(int i = 0; i<L ; ++i) {
 			checksum += abs(buffer[i]);
 		}
-		free(buffer);
-		
-		srand(1); // Make the old code use the same fixed random sequence as the new
-		int L0 = D0.GetDSFileSamples(dsFile, buffer, 1, 48000);
-		unsigned int checksum0 = 0;
-		for(int i = 0; i<L0 ; ++i) {
-			checksum0 += abs(buffer[i]);
-		}
+
 		if(checksum == checksum0 && L == L0 ){
 			cout << dsFile.toStdString() << "\t" << L << "\t" << checksum << "\tOK" <<endl;
 			return EXIT_SUCCESS;
 		} else {
+			int i;
+			for(i=0; i<min(L,L0) && buffer0[i]==buffer[i]; ++i);
 			cout << dsFile.toStdString() << "\t" << L << "\t" << checksum <<
-				"\tFAIL, expected: " << L0 << "\t" << checksum0 << endl;
+				"\tFAIL, expected: " << L0 << "\t" << checksum0 <<
+				"\tfirst difference:" << i << endl;
 			return EXIT_FAILURE;
 		}			
 	}

@@ -6,15 +6,14 @@ INCLUDE_CONFIG = -I../../build/
 INCLUDE_QT = -I/usr/include/x86_64-linux-gnu/qt5/QtCore/ -I/usr/include/x86_64-linux-gnu/qt5/
 LDLIBS += $(shell pkg-config --libs Qt5Core)
 
-CXXFLAGS += -Wunused -g -fPIC $(INCLUDE_LMMS) $(INCLUDE_CONFIG) $(INCLUDE_QT) -DQT_CORE_LIB -DQT_SHARED
+CXXFLAGS += -Wunused -O3 -fPIC $(INCLUDE_LMMS) $(INCLUDE_CONFIG) $(INCLUDE_QT) -DQT_CORE_LIB -DQT_SHARED
 
 .PHONY: testrun benchmark
 
-# Copy in old DrumSynth sources for compare and bench,
-# patching in fixed random sequence on the way
+# Copy in old DrumSynth sources for compare and bench
 DrumSynth.cpp: Makefile
 	/bin/cp $(OLDSOURCES) .
-#	/bin/sed 's|//[[:space:]]*srand|srand|' <../../src/core/DrumSynth.cpp >./DrumSynth.cpp
+
 
 DrumSynthLive.o: $(SOURCES)
 DrumSynth.o: DrumSynth.cpp DrumSynth.h

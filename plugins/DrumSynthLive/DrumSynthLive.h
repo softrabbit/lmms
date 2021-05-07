@@ -77,13 +77,11 @@ class DrumSynthLive {
 
         QByteArray LoadFile(QString file);
 	bool Parse(QString file);
-        int GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size, QString file);
-        int GetPrivateProfileInt(const QString sec, const QString key, int def, QString file);
-	bool GetPrivateProfileBool(const QString sec, const QString key, int def, QString file);
-        float GetPrivateProfileFloat(const QString sec, const QString key, float def, QString file);
+        int GetPrivateProfileString(const QString sec, const QString key, const QString def, char *buffer, int size);
+        int GetPrivateProfileInt(const QString sec, const QString key, int def);
+	bool GetPrivateProfileBool(const QString sec, const QString key, int def);
+        float GetPrivateProfileFloat(const QString sec, const QString key, float def);
 
-	QByteArray dat;	
-	stringstream is;
 	QSettings *IniData;
 };
 
