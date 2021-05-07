@@ -52,7 +52,7 @@ using namespace std;
 #define WORD  __u16
 #define DWORD __u32
 
-float _envpts[8][3][32];    // envelope/time-level/point, this didn't agree with being moved into the .h file (?)
+
 
 int DrumSynthLive::LongestEnv(void)
 {
@@ -68,8 +68,8 @@ int DrumSynthLive::LongestEnv(void)
     if(eon>2) eon=eon-1; 
 
     p = 0;
-    while (_envpts[e][0][p + 1] >= 0.f) p++;
-    envData[e].last = _envpts[e][0][p] * timestretch;
+    while (envpts[e][0][p + 1] >= 0.f) p++;
+    envData[e].last = envpts[e][0][p] * timestretch;
     if(chkOn[eon]) l = max(l, envData[e].last);
   }
   //l *= timestretch;
@@ -98,12 +98,12 @@ void DrumSynthLive::UpdateEnv(int e, long t)
 {
   float endEnv, dT;
                                                              //0.2's added
-  envData[e].next = _envpts[e][0][(long)(envData[e].pointer + 1.f)] * timestretch; //get next point
+  envData[e].next = envpts[e][0][(long)(envData[e].pointer + 1.f)] * timestretch; //get next point
   if(envData[e].next < 0) {
 	  envData[e].next = 442000 * timestretch; //if end point, hold
   }
-  envData[e].value = _envpts[e][1][(long)(envData[e].pointer + 0.f)] * 0.01f; //this level
-  endEnv = _envpts[e][1][(long)(envData[e].pointer + 1.f)] * 0.01f;          //next level
+  envData[e].value = envpts[e][1][(long)(envData[e].pointer + 0.f)] * 0.01f; //this level
+  endEnv = envpts[e][1][(long)(envData[e].pointer + 1.f)] * 0.01f;          //next level
   dT = envData[e].next - (float)t;
   dT = max(dT, 1.0f);
   envData[e].delta = (endEnv - envData[e].value) / dT;
@@ -123,12 +123,12 @@ void DrumSynthLive::GetEnv(int env, const QString key)
 	int n;
 	for(n=0; n<qsl.size() && n<32; ++n) {
 		QStringList pair = qsl.at(n).split(",");
-		_envpts[env][0][n] = pair.at(0).toFloat();
-		_envpts[env][1][n] = pair.at(1).toFloat();
+		envpts[env][0][n] = pair.at(0).toFloat();
+		envpts[env][1][n] = pair.at(1).toFloat();
 	}
-	envData[env].last = _envpts[env][0][n-1];
-	// Fill the rest with negative values
-	_envpts[env][0][n] = -1;
+	envData[env].last = envpts[env][0][n-1];
+	// Put in the sentinel
+	envpts[env][0][n] = -1;
 }
 
 

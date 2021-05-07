@@ -43,7 +43,9 @@ class DrumSynthLive {
 	bool LoadFile(QString file);
     private:
 	const float   TwoPi =  6.2831853f;
-	
+
+	float envpts[8][3][32] = {0};    // envelope/time-level/point
+
 	struct envstatus {
 		float last;          // Time of last envelope point
 		float value;         // Envelope value
