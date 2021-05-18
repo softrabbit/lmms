@@ -40,7 +40,7 @@ class DrumSynthLive {
     public:
         DrumSynthLive() {};
         int GetSamples(int16_t *&wave, int channels, sample_rate_t Fs);
-	bool LoadFile(QString file);
+				bool LoadFile(QString file);
     private:
 	const float   TwoPi =  6.2831853f;
 
@@ -54,13 +54,13 @@ class DrumSynthLive {
 		float next;          // Timestamp of next point to go to
 	};
         // Envelope indexes
-	const int ENV_TONE = 1;
-	const int ENV_NOISE = 2;
-	const int ENV_OVERTONE1 = 3;
-	const int ENV_OVERTONE2 = 4;
-	const int ENV_NOISEBAND = 5;
-	const int ENV_NOISEBAND2 = 6;
-	const int ENV_FILTER = 7;
+	const int ENV_TONE = 0;
+	const int ENV_NOISE = 1;
+	const int ENV_OVERTONE1 = 2;
+	const int ENV_OVERTONE2 = 3;
+	const int ENV_NOISEBAND = 4;
+	const int ENV_NOISEBAND2 = 5;
+	const int ENV_FILTER = 6;
 
 	const int BUFFER_SIZE = 1200;  // Identical results not promised if this is changed
 
@@ -70,7 +70,7 @@ class DrumSynthLive {
 	bool  chkOn[8];            // section on/off 
 	int   Level[8];            // and level
 	
-        float LoudestEnv(void);
+        float LoudestLevel(void);
         int   LongestEnv(void);
         void  UpdateEnv(int e, long t);
         void  GetEnv(int env, const QString key);

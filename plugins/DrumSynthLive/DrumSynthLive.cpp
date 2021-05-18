@@ -3,7 +3,8 @@
  *
  * Copyright (c) 1998-2000 Paul Kellett (mda-vst.com)
  * Copyright (c) 2007 Paul Giblock <drfaygo/at/gmail.com>
- * Some modifications by Raine M. Ekman <raine/at/iki/dot/fi>
+ * Some modifications by Raine M. Ekman <raine/at/iki/dot/fi>,
+ * no copyright claimed.
  *
  * This file is part of LMMS - https://lmms.io
  *
@@ -59,13 +60,13 @@ int DrumSynthLive::LongestEnv(void)
   long e, eon, p;
   float l=0.f;
 
-  for(e=1; e<7; e++) // The filter is excluded here, because... it's not a sound generator?
+  for(e=0; e<6; e++) // The filter is excluded here, because... it's not a sound generator?
   {
 	  
     // adjust numbering, of course it's different between
     // envelopes and on/off switches for the sections :D
-    eon = e - 1; 
-    if(eon>2) eon=eon-1; 
+    eon = e; 
+    if(eon>2) eon--;
 
     p = 0;
     while (envpts[e][0][p + 1] >= 0.f) p++;
@@ -80,7 +81,7 @@ int DrumSynthLive::LongestEnv(void)
 }
 
 
-float DrumSynthLive::LoudestEnv(void)
+float DrumSynthLive::LoudestLevel(void)
 {
   float loudest=0.f;
   int i=0;
@@ -380,7 +381,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs)
 
   if(DistOn)
   {
-    DAtten = DGain * (short)LoudestEnv();
+    DAtten = DGain * (short)LoudestLevel();
     clippoint = (short)min((int)DAtten, 32700);
     DAtten = (float)powf(2.0, 2.0 * qsInt("Distortion/Bits",0));
     DGain = DAtten * DGain * (float)powf(10.0, 0.05 * qsInt("Distortion/Clipping",0));
@@ -389,7 +390,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs)
   randmax = 1.f / RAND_MAX; randmax2 = 2.f * randmax;
 
   //prepare envelopes
-  for (i=1;i<8;i++) {
+  for (i=0;i<7;i++) {
 	  envData[i].next=0;
 	  envData[i].pointer=0;
   }
