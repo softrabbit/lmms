@@ -20,7 +20,7 @@ for f in $(/usr/bin/awk '{print $1}' <checksums.txt ) ; do
     fi
     (( total++ ))
 done
-echo -e "\n" $fails " failed out of " $total
+echo -e "\n" $fails " failed out of " $total " (expected: 4)"
 exit 0
 
 
