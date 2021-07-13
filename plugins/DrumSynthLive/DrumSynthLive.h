@@ -44,16 +44,16 @@ public:
 private:
   const float TwoPi = 6.2831853f;
 
-  float envpts[8][3][32] = {0}; // envelope/time-level/point
+  float envpts[8][2][32] = {0}; // envelope/time-level/point
 
   struct envstatus {
-    float last;    // Time of last envelope point
-    float value;   // Envelope value
-    float pointer; // Current point (index), should be made int
-    float delta;   // Delta to add to envelope value at each sample
-    float next;    // Timestamp of next point to go to
+    float last;  // Time of last envelope point
+    float value; // Envelope value
+    float delta; // Delta to add to envelope value at each sample
+    float next;  // Timestamp of next point to go to
+    int pointer; // Index of current point
   };
-  // Envelope indexes
+  // Indexes for envelopes and section on/off switches
   const int ENV_TONE = 0;
   const int ENV_NOISE = 1;
   const int ENV_OVERTONE1 = 2;
@@ -73,7 +73,7 @@ private:
 
   float LoudestLevel(void);
   int LongestEnv(void);
-  void UpdateEnv(int e, long t);
+  bool UpdateEnv(int e, long t);
   void GetEnv(int env, const QString key);
 
   float waveform(float ph, int form);
