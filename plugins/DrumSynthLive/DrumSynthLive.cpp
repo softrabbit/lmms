@@ -72,9 +72,9 @@ int DrumSynthLive::LongestEnv(void) {
     if (chkOn[eon])
       l = max(l, envData[e].last);
   }
-  // l *= timestretch;
+  // Round to even buffers, leave 1 empty at end
+  return BUFFER_SIZE * (1 + ceil(l / BUFFER_SIZE));
 
-  return BUFFER_SIZE * (2 + (int)(l / BUFFER_SIZE));
 }
 
 float DrumSynthLive::LoudestLevel(void) {
@@ -358,6 +358,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
 
   OcA = 0.28f + OBal1 * OBal1; // overtone cymbal mode
   OcQ = OcA * OcA;
+  // TODO: fix filter to be sample rate agnostic
   OcF = (1.8f - 0.7f * OcQ) * 0.92f; // multiply by env 2
   OcA *= 1.0f + 4.0f * OBal1;        // level is a compromise!
   Ocf1 = TwoPi / OF1;
@@ -439,6 +440,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
         } else {
           NoiseOn = UpdateEnv(ENV_NOISE, t);
         }
+	// TODO: fix filter to be sample rate agnostic
         x[2] = x[1];
         x[1] = x[0];
         x[0] = (2.f * (float)rand() / RAND_MAX) - 1.f;
@@ -593,6 +595,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
               Ot = OL * envData[ENV_OVERTONE1].value;
             }
           }
+	  // TODO: fix filter to be sample rate agnostic
           Ocf1 = envData[ENV_OVERTONE2].value * OcF; // filter freq
           Oc0 += Ocf1 * Oc1;
           Oc1 += Ocf1 * (Ot + Oc2 - OcQ * Oc1 - Oc0); // bpf
@@ -609,6 +612,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
         else
           UpdateEnv(ENV_FILTER, t);
 
+	// TODO: fix filter to be sample rate agnostic
         MFtmp = envData[ENV_FILTER].value;
         if (MFtmp > 0.2f)
           MFfb = 1.001f - (float)powf(10.0f, MFtmp - 1);

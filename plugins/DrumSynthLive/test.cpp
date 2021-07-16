@@ -59,28 +59,28 @@ int main(int argc, char **argv) {
 		     << old_ns << "\t" << setprecision(2) << (double)new_ns/old_ns << endl;
 		return EXIT_SUCCESS;
 	} else {
-
+		
 		
 		srand(1); // Make the old code use the same fixed random sequence as the new
 		int L0 = D0.GetDSFileSamples(dsFile, buffer0, 1, 48000);
 		unsigned int checksum0 = 0;
-		for(int i = 0; i<L0 ; ++i) {
+		int i;
+		for(i = 0; i<L0 ; ++i) {
 			checksum0 += abs(buffer0[i]);
 		}
 
 		D.LoadFile(dsFile);
 		int L = D.GetSamples(buffer, 1, 48000);
 		unsigned int checksum = 0;
-		for(int i = 0; i<L ; ++i) {
+		for(i = 0; i<L ; ++i) {
 			checksum += abs(buffer[i]);
 		}
-
-		if(checksum == checksum0 && L == L0 ){
+		for(i=0; i<min(L,L0) && buffer0[i]==buffer[i]; ++i);
+		
+		if(checksum == checksum0 && i == min(L, L0)) {
 			cout << dsFile.toStdString() << "\t" << L << "\t" << checksum << "\tOK" <<endl;
 			return EXIT_SUCCESS;
 		} else {
-			int i;
-			for(i=0; i<min(L,L0) && buffer0[i]==buffer[i]; ++i);
 			cout << dsFile.toStdString() << "\t" << L << "\t" << checksum <<
 				"\tFAIL, expected: " << L0 << "\t" << checksum0 <<
 				"\tfirst difference:" << i << endl;

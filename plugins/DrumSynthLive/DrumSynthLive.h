@@ -62,8 +62,9 @@ private:
   const int ENV_NOISEBAND2 = 5;
   const int ENV_FILTER = 6;
 
-  const int BUFFER_SIZE =
-      1200; // Identical results not promised if this is changed
+  // Identical results not promised if this is changed - but why does this change
+  // even things in position 0, which it shouldn't really do by all logic
+  const int BUFFER_SIZE = 1000; 
 
   float timestretch; // overall time scaling
 
