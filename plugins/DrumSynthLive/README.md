@@ -19,7 +19,7 @@ Ubuntu 20.04 is more or less assumed in the early stages: awk, shell, same versi
 ### 2021-07-16 ###
 Looks like I'm at the end of how far I'll get keeping the output bit-exact wrt the original. Some things I've discovered along the way:
 
-- Buffer size must be 1200 for some reason. It clearly affects at which time the different parts are turned off after running to the end of the envelopes but oddly enough, changing the buffer size leads to differences even at position 0. 
-- The downsampling in the distortion section is also dependent on buffer size, but shouldn't be a problem for ratios 1-6 as long as the buffer size is divisible by all those.
+- Buffer size must be 1200 for some reason. It clearly affects at which time the different parts are turned off after running to the end of the envelopes but oddly enough, changing the buffer size leads to differences even at position 0. Looks like having 2 or 3 of the noise components enabled trigger this, no idea why, though.
+- The downsampling in the distortion section is also dependent on buffer size, but shouldn't be a problem for ratios 1-6 as long as the buffer size is divisible by all those. _Oh, 5-7 are mapped to 8, 10 and 20..._ 
 - Some things assume a 44100 Hz sample rate. At least the main filter, noise filter and the overtone filter in "808 cymbal" mode use magic numbers that should be adjusted to get comparable output. Worst case, analyze what the filters do and remake them...
 - 
