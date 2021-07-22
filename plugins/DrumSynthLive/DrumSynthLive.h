@@ -64,7 +64,7 @@ private:
 
   // Identical results not promised if this is changed - but why does this change
   // even things in position 0, which it shouldn't really do by all logic
-  const int BUFFER_SIZE = 1000; 
+  const int BUFFER_SIZE = 1200; 
 
   float timestretch; // overall time scaling
 

@@ -229,7 +229,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
   bool OF1Sync = false, OF2Sync = false;
   long OMode, OW1, OW2;
   float Ophi1, Ophi2, OF1, OF2, OL, Ot = 0, OBal1, OBal2, ODrive;
-  float Ocf1, Ocf2, OcF, OcQ, OcA, Oc[6][2]; // overtone cymbal mode
+  float Ocf1, Ocf2, OcF, OcQ, Oc[6][2]; // overtone cymbal mode
   float Oc0 = 0.0f, Oc1 = 0.0f, Oc2 = 0.0f;
 
   // Main filter
@@ -356,14 +356,12 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
     OF2 = OF2 / F1;
   }
 
-  OcA = 0.28f + OBal1 * OBal1; // overtone cymbal mode
-  OcQ = OcA * OcA;
-  // TODO: fix filter to be sample rate agnostic
-  OcF = (1.8f - 0.7f * OcQ) * 0.92f; // multiply by env 2
-  OcA *= 1.0f + 4.0f * OBal1;        // level is a compromise!
+  // TODO: fix filter (OcQ, OcF?) to be sample rate agnostic
+  OcQ = powf((0.28f + OBal1 * OBal1),2); // overtone cymbal mode
+  OcF = (1.8f - 0.7f * OcQ) * 0.92f; // will be multiplied by envelope
   Ocf1 = TwoPi / OF1;
   Ocf2 = TwoPi / OF2;
-  for (i = 0; i < 6; i++)
+  for (i = 0; i < 6; i++) // This is part of tone generation, not filter
     Oc[i][0] = Oc[i][1] = Ocf1 + (Ocf2 - Ocf1) * 0.2f * (float)i;
 
   // read noise band parameters
@@ -596,7 +594,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
             }
           }
 	  // TODO: fix filter to be sample rate agnostic
-          Ocf1 = envData[ENV_OVERTONE2].value * OcF; // filter freq
+          Ocf1 = envData[ENV_OVERTONE2].value * OcF; // filter freq, should this be * timestretch?
           Oc0 += Ocf1 * Oc1;
           Oc1 += Ocf1 * (Ot + Oc2 - OcQ * Oc1 - Oc0); // bpf
           Oc2 = Ot;

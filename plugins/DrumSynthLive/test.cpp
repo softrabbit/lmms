@@ -12,7 +12,7 @@ using namespace std;
 
 int main(int argc, char **argv) {
 	if(argc==1) {
-		cerr << "Usage: " << argv[0] << " dsfile [timing]" << endl;
+		cerr << "Usage: " << argv[0] << " dsfile [timing|stereo]" << endl;
 		return EXIT_FAILURE;
 	}
 
@@ -22,7 +22,9 @@ int main(int argc, char **argv) {
 	QString dsFile = QString(argv[1]);
 	int mode = 0;
 	if(argc>2) {
-		if(QString(argv[2]) == "timing") mode = 1;		
+		if(QString(argv[2]) == "timing") mode = 1;
+		if(QString(argv[2]) == "stereo") mode = 2;
+		
 	}
 
 	DrumSynthLive D  = DrumSynthLive();
@@ -57,6 +59,34 @@ int main(int argc, char **argv) {
 
 		cout << setprecision(9) << fixed << dsFile.toStdString() << "\t" << new_ns << "\t"
 		     << old_ns << "\t" << setprecision(2) << (double)new_ns/old_ns << endl;
+		return EXIT_SUCCESS;
+	} else if(mode == 2) {
+		// Stereo output... original in channel 0, modified in channel 1
+		// Importable in Audacity as "Signed 16-bit PCM, little-endian, 2 channels"
+		D.LoadFile(dsFile);
+		int L = D.GetSamples(buffer, 1, 44100);
+		int L0 = D0.GetDSFileSamples(dsFile, buffer0, 1, 44100);
+		int len = max(L,L0);
+		if(!freopen(NULL, "wb", stdout)) {
+			return EXIT_FAILURE;
+		}
+		int i;
+		for(i = 0; i<min(L,L0); ++i) {
+			fwrite(buffer0+i, sizeof(int16_t),1,stdout);
+			fwrite(buffer+i, sizeof(int16_t),1,stdout);
+		}
+		if(L0>L) {
+			for( ; i<len; ++i) {
+				fwrite(buffer0+i,sizeof(int16_t),1,stdout);
+				fwrite(buffer+L-1,sizeof(int16_t),1,stdout);
+			}
+		}
+		if(L>L0) {
+			for( ; i<len; ++i) {
+				fwrite(buffer0+L0-1,sizeof(int16_t),1,stdout);
+				fwrite(buffer0+i,sizeof(int16_t),1,stdout);
+			}
+		}
 		return EXIT_SUCCESS;
 	} else {
 		
