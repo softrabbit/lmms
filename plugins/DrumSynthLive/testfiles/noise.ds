@@ -1,6 +1,6 @@
 [General]
 Version=DrumSynth v2.0
-Comment=Overtone test 1
+Comment=Noise test
 Tuning=0
 Stretch=100
 Level=0
@@ -19,14 +19,14 @@ Phase=15
 Envelope=0,100 1799,51 2998,27 5347,1 8095,0
 
 [Noise]
-On=0
+On=1
 Level=132
 Slope=54
-Envelope=0,100 1849,57 4500,30 6496,11 9000,0
+Envelope=0,100 10000,100 22000,0
 FixedSeq=0
 
 [Overtones]
-On=1
+On=0
 Level=80
 F1=5200
 Wave1=0

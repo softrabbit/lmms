@@ -1,16 +1,16 @@
 [General]
 Version=DrumSynth v2.0
-Comment=Main filter test
+Comment=Filter test
 Tuning=0
 Stretch=100
 Level=0
 Filter=1
-HighPass=0
-Resonance=5
-FilterEnv=0,77 849,95 7645,100 442000,100 442000,0
+HighPass=1
+Resonance=80
+FilterEnv=0,10 442000,10
 
 [Tone]
-On=1
+On=0
 Level=123
 F1=880
 F2=112
@@ -19,10 +19,10 @@ Phase=15
 Envelope=0,100 1799,51 2998,27 5347,1 8095,0
 
 [Noise]
-On=0
+On=1
 Level=132
 Slope=54
-Envelope=0,100 1849,57 4500,30 6496,11 9000,0
+Envelope=0,100 10000,100 22000,0
 FixedSeq=0
 
 [Overtones]
@@ -57,5 +57,5 @@ Envelope=0,100 1500,20 4500,0
 [Distortion]
 On=0
 Clipping=5
-Bits=8
-Rate=3
+Bits=0
+Rate=0

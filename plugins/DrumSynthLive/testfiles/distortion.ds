@@ -12,9 +12,9 @@ FilterEnv=0,77 849,95 7645,100 442000,100 442000,0
 [Tone]
 On=1
 Level=123
-F1=880
-F2=112
-Droop=50
+F1=110	
+F2=110
+Droop=0
 Phase=15
 Envelope=0,100 1799,51 2998,27 5347,1 8095,0
 
@@ -56,6 +56,6 @@ Envelope=0,100 1500,20 4500,0
 
 [Distortion]
 On=1
-Clipping=0
-Bits=6
-Rate=3
+Clipping=10
+Bits=4
+Rate=7
