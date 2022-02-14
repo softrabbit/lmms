@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
 	if(mode == 1) {
 		// Benchmark mode
-		const int runs = 100; // Enough to give usable times on my system...
+		const int runs = 50; // Enough to give usable times on my system...
 		struct timespec start,end;
 		long new_ns = 0;
 		// Measure render speed for new version

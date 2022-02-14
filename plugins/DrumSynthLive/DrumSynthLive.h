@@ -35,6 +35,12 @@
 class QString;
 using namespace std;
 
+#ifdef DOUBLE_PRECISION
+typedef double FLOAT;
+#else
+typedef float FLOAT;
+#endif
+
 class DrumSynthLive {
 public:
   DrumSynthLive(){};
@@ -42,15 +48,15 @@ public:
   bool LoadFile(QString file);
 
 private:
-  const float TwoPi = 6.2831853f;
+  const FLOAT TwoPi = 6.2831853f;
 
-  float envpts[8][2][32] = {0}; // envelope/time-level/point
+  FLOAT envpts[8][2][32] = {0}; // envelope/time-level/point
 
   struct envstatus {
-    float last;  // Time of last envelope point
-    float value; // Envelope value
-    float delta; // Delta to add to envelope value at each sample
-    float next;  // Timestamp of next point to go to
+    FLOAT last;  // Time of last envelope point
+    FLOAT value; // Envelope value
+    FLOAT delta; // Delta to add to envelope value at each sample
+    FLOAT next;  // Timestamp of next point to go to
     int pointer; // Index of current point
   };
   // Indexes for envelopes and section on/off switches
@@ -66,23 +72,23 @@ private:
   // even things in position 0, which it shouldn't really do by all logic
   const int BUFFER_SIZE = 1200; 
 
-  float timestretch; // overall time scaling
+  FLOAT timestretch; // overall time scaling
 
   struct envstatus envData[8]; // envelope running status
   bool chkOn[8];               // section on/off
   int Level[8];                // and level
 
-  float LoudestLevel(void);
+  FLOAT LoudestLevel(void);
   int LongestEnv(void);
   bool UpdateEnv(int e, long t);
   void GetEnv(int env, const QString key);
 
-  float waveform(float ph, int form);
+  FLOAT waveform(FLOAT ph, int form);
 
   int qsString(const QString key, const QString def, char *buffer, int size);
   int qsInt(const QString key, int def);
   bool qsBool(const QString key, int def);
-  float qsFloat(const QString key, float def);
+  FLOAT qsFloat(const QString key, FLOAT def);
 
   QSettings *IniData;
 };

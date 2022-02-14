@@ -46,3 +46,5 @@ Listening session (or rather watching a spectrum analyzer) on the test files, co
 
 ### 2022-02-13 ###
 *Damn, what was I thinking last summer?* Of course the result will differ if the buffer size is changed and more than one noise generator pull random numbers from the same sequence... if noise 1 is supposed to get numbers 0..1199 and noise 2 should have 1200..2399, no wonder it breaks if noise 1 gets e.g. **0..255**.
+
+Added optional double precision. Compile like e.g. ```CXXFLAGS="-DDOUBLE_PRECISION" make test```
