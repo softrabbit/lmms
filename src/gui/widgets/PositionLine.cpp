@@ -63,7 +63,7 @@ void PositionLine::paintEvent(QPaintEvent* pe)
 		if (m_hasTailGradient &&
 			Engine::getSong()->isPlaying() &&
 			(Engine::getSong()->playMode() == Song::Mode_PlaySong ||
-			 Engine::getSong()->playMode() == Song::Mode_PlayPattern))
+			 Engine::getSong()->playMode() == Song::Mode_PlayMidiClip))
 		{
 			c.setAlpha(60);
 			gradient.setColorAt(w, c);
@@ -87,7 +87,7 @@ void PositionLine::paintEvent(QPaintEvent* pe)
 
 // NOTE: the move() implementation fixes a bug where the position line would appear
 // in an unexpected location when positioned at the start of the track
-void PositionLine::zoomChange(double zoom)
+void PositionLine::zoomChange(float zoom)
 {
 	int playHeadPos = x() + width() - 1;
 
