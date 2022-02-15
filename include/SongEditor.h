@@ -84,7 +84,7 @@ public slots:
 
 	void updatePosition( const TimePos & t );
 	void updatePositionLine();
-	void selectAllTcos( bool select );
+	void selectAllClips( bool select );
 
 protected:
 	void closeEvent( QCloseEvent * ce ) override;
@@ -141,7 +141,7 @@ private:
 	ComboBoxModel* m_snappingModel;
 	bool m_proportionalSnap;
 
-	static const QVector<double> m_zoomLevels;
+	static const QVector<float> m_zoomLevels;
 
 	bool m_scrollBack;
 	bool m_smoothScroll;
@@ -161,7 +161,7 @@ private:
 	friend class SongEditorWindow;
 
 signals:
-	void zoomingValueChanged( double );
+	void zoomingValueChanged( float );
 } ;
 
 
@@ -198,7 +198,7 @@ signals:
 	void resized();
 
 private:
-	QAction* m_addBBTrackAction;
+	QAction* m_addPatternTrackAction;
 	QAction* m_addSampleTrackAction;
 	QAction* m_addAutomationTrackAction;
 	QAction* m_setProportionalSnapAction;
