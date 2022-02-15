@@ -75,7 +75,8 @@ int main(int argc, char **argv) {
 		D.LoadFile(dsFile);
 		for(int i=0; i<runs; ++i) {
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &start);
-			D.GetSamples(buffer, 1, 48000);
+			D.init(48000);
+			D.GetSamples(buffer, 1);
 			clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &end);
 			free(buffer);
 			new_ns += (end.tv_sec - start.tv_sec) * 1000000000 + (end.tv_nsec - start.tv_nsec);
@@ -98,7 +99,8 @@ int main(int argc, char **argv) {
 		// Stereo output... original in channel 0, modified in channel 1
 		// Importable in Audacity as "Signed 16-bit PCM, little-endian, 2 channels"
 		D.LoadFile(dsFile);
-		int L = D.GetSamples(buffer, 1, 44100);
+		D.init(44100);
+		int L = D.GetSamples(buffer, 1);
 		srand(1);
 		int L0 = D0.GetDSFileSamples(dsFile, buffer0, 1, 44100);
 		int len = max(L,L0);
@@ -135,7 +137,8 @@ int main(int argc, char **argv) {
 		}
 
 		D.LoadFile(dsFile);
-		int L = D.GetSamples(buffer, 1, 48000);
+		D.init(48000);
+		int L = D.GetSamples(buffer, 1);
 		unsigned int checksum = 0;
 		for(i = 0; i<L ; ++i) {
 			checksum += abs(buffer[i]);

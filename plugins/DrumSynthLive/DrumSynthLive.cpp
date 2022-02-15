@@ -193,59 +193,11 @@ inline FLOAT DrumSynthLive::qsFloat(const QString key, FLOAT def) {
   return IniData->value(key, def).toFloat();
 }
 
-// Here we assume the file has been loaded and parsed in previously
-int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
 
-  FLOAT DF[BUFFER_SIZE];  // The buffer audio is rendered into
-  FLOAT phi[BUFFER_SIZE]; // Phase buffer... something?
-  long wavewords;         // Counter
-
-  short clippoint;
-
-  // input file
+bool DrumSynthLive::init(sample_rate_t s) {
   char ver[32];
   // char comment[256];
   // int commentLen=0;
-
-  // generation
-  long Length, tpos = 0, tplus, totmp, t, i, j;
-
-  FLOAT MasterTune;
-  int MainFilter, HighPass;
-
-  // Switches for the sections
-  bool NoiseOn, ToneOn, DistOn, Band1On, Band2On, OvertonesOn;
-
-  // Noise
-  FLOAT x[3] = {0.f, 0.f, 0.f};
-  FLOAT a, b = 0.f, c = 0.f, d = 0.f, g, TT = 0.f;
-
-  long NoiseSlope, DStep;
-
-  FLOAT ToneLevel, NoiseLevel, F1, F2;
-  FLOAT TphiStart = 0.f, Tphi, TDroopRate, ddF, DAtten, DGain;
-  bool TDroop = false;
-
-  // Noise bands
-  long BFStep, BFStep2, botmp;
-	FLOAT BdF[2] = {0.f, 0.f};
-	FLOAT BPhi[2] = {TwoPi /8.f, TwoPi/8.f};
-	FLOAT BF[2], BQ[2], BL[2];
-
-  // Overtones
-  bool OF1Sync = false, OF2Sync = false;
-  long OMode, OW1, OW2;
-  FLOAT Ophi1, Ophi2, OF1, OF2, OL, Ot = 0, OBal1, OBal2, ODrive;
-  FLOAT Ocf1, Ocf2, OcF, OcQ, Oc[6][2]; // overtone cymbal mode
-  FLOAT Oc0 = 0.0f, Oc1 = 0.0f, Oc2 = 0.0f;
-
-  // Main filter
-  FLOAT MFfb, MFtmp, MFres, MFin = 0.f, MFout = 0.f;
-
-  // Downsampling variables
-  FLOAT DownAve;
-  long DownStart, DownEnd, jj;
-
   // try to read version from input file
   qsString("Version", "", ver, sizeof(ver));
   ver[9] = 0;
@@ -273,6 +225,7 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
 
   // The stretch parameter adds time range at the cost of precision or vice
   // versa
+  Fs = s;
   timestretch = .01f * qsFloat("Stretch", 100.0);
   timestretch = min(max(timestretch, (FLOAT)0.2),
                     (FLOAT)10.0); // TODO: C++17: clamp(timestretch, 0.2f, 10.f);
@@ -280,23 +233,43 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
   // so adjust it to fit the current sample rate
   timestretch *= Fs / 44100.f;
 
+  // Which parts are on?
+  NoiseOn = chkOn[ENV_NOISE] = qsBool("Noise/On", 0);
+  ToneOn = chkOn[ENV_TONE] = qsBool("Tone/On", 0);
+  OvertonesOn = chkOn[ENV_OVERTONE1] = qsBool("Overtones/On", 0);
+  Band1On = chkOn[3] = qsBool("NoiseBand/On", 0);
+  Band2On = chkOn[4] = qsBool("NoiseBand2/On", 0);
+  DistOn = chkOn[5] = qsBool("Distortion/On", 0);
+
+  // Read and prepare envelopes
+  GetEnv(ENV_FILTER, "FilterEnv");
+  GetEnv(ENV_NOISE, "Noise/Envelope");
+  GetEnv(ENV_TONE, "Tone/Envelope");
+  GetEnv(ENV_OVERTONE1, "Overtones/Envelope1");
+  GetEnv(ENV_OVERTONE2, "Overtones/Envelope2");
+  GetEnv(ENV_NOISEBAND, "NoiseBand/Envelope");
+  GetEnv(ENV_NOISEBAND2, "NoiseBand2/Envelope");
+
+  for (int i = 0; i < 7; i++) {
+    envData[i].next = 0;
+    envData[i].pointer = 0;
+  }
+
+  
+  // Gain, tuning, filter
   DGain = (FLOAT)powf(10.0, 0.05 * qsFloat("Level", 0)); // -20 to 20 dB
   MasterTune = qsFloat("Tuning", 0.0);
   MasterTune = (FLOAT)powf(1.0594631f, MasterTune);
 
   // 2 = filter all, 1 = filter only overtones
   MainFilter = qsBool("Filter", 0) ? 2 : qsBool("Overtones/Filter", 0) ? 1 : 0;
-
   MFres = 0.0101f * qsFloat("Resonance", 0.0); // 0 to 99
   MFres = (FLOAT)powf(MFres, 0.5f);
   HighPass = qsInt("HighPass", 0);
-  GetEnv(ENV_FILTER, "FilterEnv");
 
-  // read noise parameters
-  NoiseOn = chkOn[ENV_NOISE] = qsBool("Noise/On", 0);
+  // Noise parameters
   Level[ENV_NOISE] = qsInt("Noise/Level", 0);   // 1 = -90.3 dB, 181  =0.0 dB
   NoiseSlope = qsInt("Noise/Slope", 0); // -100 = Red, -50 = Pink, 0 = White, 50 = Azure, 100 = Blue
-  GetEnv(ENV_NOISE, "Noise/Envelope");
   NoiseLevel = (FLOAT)(Level[ENV_NOISE] * Level[ENV_NOISE]);
   if (NoiseSlope < 0) {
     a = 1.f + (NoiseSlope / 105.f);
@@ -309,16 +282,10 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
     g = NoiseLevel;
   }
 
-  // Always a fixed random number sequence for now, remember to enable this
-  // option when done coding...
-  // if(qsBool("Noise/FixedSeq",0))
-  srand(1);
 
-  // read tone parameters
-  ToneOn = chkOn[ENV_TONE] = qsBool("Tone/On", 0);
+  // Tone parameters
   Level[ENV_TONE] = qsInt("Tone/Level", 128); // 1 = -90.3 dB, 181  =0.0 dB
   ToneLevel = (FLOAT)(Level[ENV_TONE] * Level[ENV_TONE]);
-  GetEnv(ENV_TONE, "Tone/Envelope");
   F1 = MasterTune * TwoPi * qsFloat("Tone/F1", 200.0) / Fs; // Phase increment
   F1 = max(F1, (FLOAT)0.001); // to prevent overtone ratio div0	
   F2 = MasterTune * TwoPi * qsFloat("Tone/F2", 120.0) / Fs;
@@ -330,17 +297,15 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
     F2 = F1 +
          ((F2 - F1) / (1.f - (FLOAT)exp(TDroopRate * envData[ENV_TONE].last)));
     ddF = F1 - F2;
-  } else
+  } else {
     ddF = F2 - F1;
-
+  }
   Tphi = qsFloat("Tone/Phase", 90.f) / 57.29578f; // degrees>radians
 
-  // read overtone parameters
-  OvertonesOn = chkOn[ENV_OVERTONE1] = qsBool("Overtones/On", 0);
+
+  // Overtone parameters
   Level[ENV_OVERTONE1] = qsInt("Overtones/Level", 128); // 1 = -90.3 dB, 181  =0.0 dB
   OL = (FLOAT)(Level[ENV_OVERTONE1] * Level[ENV_OVERTONE1]);
-  GetEnv(ENV_OVERTONE1, "Overtones/Envelope1");
-  GetEnv(ENV_OVERTONE2, "Overtones/Envelope2");
   OMode = qsInt("Overtones/Method", 2);
   OF1 = MasterTune * TwoPi * qsFloat("Overtones/F1", 200.0) / Fs;
   OF2 = MasterTune * TwoPi * qsFloat("Overtones/F2", 120.0) / Fs;
@@ -359,43 +324,38 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
   if ((qsInt("Overtones/Track2", 0) == 1) && ToneOn) {
     OF2Sync = true;
     OF2 = OF2 / F1;
-  }
+  }  
 
-  // TODO: fix filter (OcQ, OcF?) to be sample rate agnostic
+  
+  // Filter parameters, TODO: fix this (OcQ, OcF?)
+  // to be sample rate agnostic
   OcQ = powf((0.28f + OBal1 * OBal1),2); // overtone cymbal mode
   OcF = (1.8f - 0.7f * OcQ) * 0.92f; // will be multiplied by envelope
   Ocf1 = TwoPi / OF1;
   Ocf2 = TwoPi / OF2;
-  for (i = 0; i < 6; i++) // This is part of tone generation, not filter
+  for (int i = 0; i < 6; i++) // This is part of tone generation, not filter
     Oc[i][0] = Oc[i][1] = Ocf1 + (Ocf2 - Ocf1) * 0.2f * (FLOAT)i;
 
-  // read noise band parameters
-  Band1On = chkOn[3] = qsBool("NoiseBand/On", 0);
+  // Two noise bands, and the modulation between them
   Level[3] = qsInt("NoiseBand/Level", 128); // 1 = -90.3 dB, 181  =0.0 dB
   BL[0] = (FLOAT)(Level[3] * Level[3]);
   BF[0] = MasterTune * TwoPi * qsFloat("NoiseBand/F", 1000.0) / Fs;
-  // BPhi[0] = TwoPi / 8.f;
-  GetEnv(ENV_NOISEBAND, "NoiseBand/Envelope");
   BFStep = qsInt("NoiseBand/dF", 50); // Width, 0-100
   BQ[0] = (FLOAT)BFStep;
   BQ[0] = BQ[0] * BQ[0] / (10000.f - 6600.f * ((FLOAT)sqrt(BF[0]) - 0.19f));
   BFStep = 1 + (int)((40.f - (BFStep / 2.5f)) / (BQ[0] + 1.f + (1.f * BF[0])));
 	
-  Band2On = chkOn[4] = qsBool("NoiseBand2/On", 0);
   Level[4] = qsInt("NoiseBand2/Level", 128);
   BL[1] = (FLOAT)(Level[4] * Level[4]);
   BF[1] = MasterTune * TwoPi * qsFloat("NoiseBand2/F", 1000.0) / Fs;
-  // BPhi[1] = TwoPi / 8.f;
-  GetEnv(ENV_NOISEBAND2, "NoiseBand2/Envelope");
   BFStep2 = qsInt("NoiseBand2/dF", 50);
   BQ[1] = (FLOAT)BFStep2;
   BQ[1] = BQ[1] * BQ[1] / (10000.f - 6600.f * ((FLOAT)sqrt(BF[1]) - 0.19f));
   BFStep2 = 1 + (int)((40 - (BFStep2 / 2.5)) / (BQ[1] + 1 + (1 * BF[1])));
 
-	
-  // read distortion parameters, these could probably made to work with oversampling
-	// through simple multiplication!
-  DistOn = chkOn[5] = qsBool("Distortion/On", 0);
+  // Distortion parameters, these could probably made to work with oversampling
+  // through simple multiplication!
+
   DStep = 1 + qsInt("Distortion/Rate", 0); // 1...7 = 11/7/5/4/3/2/1 kHz, 0 = none
   if (DStep == 7)
     DStep = 20;
@@ -415,13 +375,34 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
             (FLOAT)powf(10.0, 0.05 * qsInt("Distortion/Clipping", 0)); // -X dB, 0 to 60
   }
 
-  // prepare envelopes
-  for (i = 0; i < 7; i++) {
-    envData[i].next = 0;
-    envData[i].pointer = 0;
-  }
 
-  Length = LongestEnv();
+  // Always a fixed random number sequence for now, remember to enable this
+  // option when done coding...
+  // if(qsBool("Noise/FixedSeq",0))
+  srand(1);
+
+  // I'd like to call this earlier, but as LongestEnv() changes the envelopes,
+  // it might break stuff in the preceding code... :|
+  Length = LongestEnv();  
+  
+  return true;
+}
+
+// Here we assume the file has been loaded and parsed in previously
+int DrumSynthLive::GetSamples(int16_t *&wave, int channels) {
+
+  FLOAT DF[BUFFER_SIZE];  // The buffer audio is rendered into
+  FLOAT phi[BUFFER_SIZE]; // Phase buffer... something?
+  long wavewords;         // Counter
+
+  // generation
+  long tpos = 0, tplus, totmp, t, j;
+
+
+
+
+
+
 
   // allocate the buffer
   // if(wave!=NULL) free(wave);

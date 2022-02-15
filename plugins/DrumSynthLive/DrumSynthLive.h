@@ -44,7 +44,8 @@ typedef float FLOAT;
 class DrumSynthLive {
 public:
   DrumSynthLive(){};
-  int GetSamples(int16_t *&wave, int channels, sample_rate_t Fs);
+  bool init(sample_rate_t s);
+  int GetSamples(int16_t *&wave, int channels);
   bool LoadFile(QString file);
 
 private:
@@ -72,7 +73,8 @@ private:
   const int BUFFER_SIZE = 1200; 
 
   FLOAT timestretch; // overall time scaling
-
+  sample_rate_t Fs;
+	
   struct envstatus envData[8]; // envelope running status
   bool chkOn[8];               // section on/off
   int Level[8];                // and level
@@ -91,9 +93,47 @@ private:
 
   QSettings *IniData;
 
-	
+  // Internal synth state
 
-	
+  FLOAT MasterTune;
+  int MainFilter, HighPass;
+
+  // Switches for the sections
+  bool NoiseOn, ToneOn, DistOn, Band1On, Band2On, OvertonesOn;
+
+  // Noise
+  FLOAT x[3] = {0.f, 0.f, 0.f};
+  FLOAT a, b = 0.f, c = 0.f, d = 0.f, g, TT = 0.f;
+
+  long NoiseSlope, DStep;
+
+  FLOAT ToneLevel, NoiseLevel, F1, F2;
+  FLOAT TphiStart = 0.f, Tphi, TDroopRate, ddF, DAtten, DGain;
+  bool TDroop = false;
+
+  // Noise bands
+  long BFStep, BFStep2, botmp;
+  FLOAT BdF[2] = {0.f, 0.f};
+  FLOAT BPhi[2] = {TwoPi /8.f, TwoPi/8.f};
+  FLOAT BF[2], BQ[2], BL[2];
+
+  // Overtones
+  bool OF1Sync = false, OF2Sync = false;
+  long OMode, OW1, OW2;
+  FLOAT Ophi1, Ophi2, OF1, OF2, OL, Ot = 0, OBal1, OBal2, ODrive;
+  FLOAT Ocf1, Ocf2, OcF, OcQ, Oc[6][2]; // overtone cymbal mode
+  FLOAT Oc0 = 0.0f, Oc1 = 0.0f, Oc2 = 0.0f;
+
+  // Main filter
+  FLOAT MFfb, MFtmp, MFres, MFin = 0.f, MFout = 0.f;
+
+  // Downsampling variables
+  FLOAT DownAve;
+  long DownStart, DownEnd, jj;
+
+  short clippoint;
+  long Length;
+  	
 };
 
 #endif
