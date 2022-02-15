@@ -37,10 +37,15 @@
 #include <QFile>
 #include <QSettings>
 
-// Shouldn't pow() be OK in all C++11 systems?
+
 #ifdef LMMS_BUILD_WIN32
 #define powf pow
 #endif
+
+#ifdef DOUBLE_PRECISION
+// #define powf pow
+#endif
+
 
 #ifdef _MSC_VER
 // not #if LMMS_BUILD_WIN32 because we have strncasecmp in mingw
@@ -284,7 +289,6 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
 
   MFres = 0.0101f * qsFloat("Resonance", 0.0); // 0 to 99
   MFres = (FLOAT)powf(MFres, 0.5f);
-
   HighPass = qsInt("HighPass", 0);
   GetEnv(ENV_FILTER, "FilterEnv");
 
@@ -637,9 +641,9 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
 
     if (DistOn) // bit resolution
     {
-		  for (j = 0; j < BUFFER_SIZE; j++) {
-		    DF[j] = DGain * (int)(DF[j] / DAtten);
-			}
+      for (j = 0; j < BUFFER_SIZE; j++) {
+	DF[j] = DGain * (int)(DF[j] / DAtten);
+      }
 
       for (j = 0; j < BUFFER_SIZE; j += DStep) // downsampling
       {
@@ -653,19 +657,19 @@ int DrumSynthLive::GetSamples(int16_t *&wave, int channels, sample_rate_t Fs) {
           DF[jj] = DownAve;
       }
     } else {
-	    for (j = 0; j < BUFFER_SIZE; j++) {
-			  DF[j] *= DGain;
-	  }
-	}
+      for (j = 0; j < BUFFER_SIZE; j++) {
+	DF[j] *= DGain;
+      }
+    }
     for (j = 0; j < BUFFER_SIZE; j++) // clipping + output
     {
-			if (DF[j] > clippoint) {
+      if (DF[j] > clippoint) {
         wave[wavewords++] = clippoint;
-			} else if (DF[j] < -clippoint) {
-        wave[wavewords++] = -clippoint;
-			} else {
-        wave[wavewords++] = (short)DF[j];
-			}
+      } else if (DF[j] < -clippoint) {
+	wave[wavewords++] = -clippoint;
+      } else {
+	wave[wavewords++] = (short)DF[j];
+      }
 			
       for (int c = 1; c < channels; c++) {
         wave[wavewords] = wave[wavewords - 1];
