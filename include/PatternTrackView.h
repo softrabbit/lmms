@@ -22,14 +22,20 @@
  *
  */
 
+#ifndef LMMS_GUI_PATTERN_TRACK_VIEW_H
+#define LMMS_GUI_PATTERN_TRACK_VIEW_H
 
-#ifndef PATTERN_TRACK_VIEW_H
-#define PATTERN_TRACK_VIEW_H
-
-#include <QtCore/QObject>
-
-#include "PatternTrack.h"
 #include "TrackView.h"
+
+namespace lmms
+{
+
+class PatternTrack;
+
+namespace gui
+{
+
+class TrackLabelButton;
 
 
 class PatternTrackView : public TrackView
@@ -37,7 +43,7 @@ class PatternTrackView : public TrackView
 	Q_OBJECT
 public:
 	PatternTrackView(PatternTrack* pt, TrackContainerView* tcv);
-	virtual ~PatternTrackView();
+	~PatternTrackView() override;
 
 	bool close() override;
 
@@ -58,4 +64,8 @@ private:
 
 
 
-#endif
+} // namespace gui
+
+} // namespace lmms
+
+#endif // LMMS_GUI_PATTERN_TRACK_VIEW_H

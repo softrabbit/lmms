@@ -31,6 +31,8 @@
 #include "MixHelpers.h"
 #include "BufferManager.h"
 
+namespace lmms
+{
 
 AudioPort::AudioPort( const QString & _name, bool _has_effect_chain,
 		FloatModel * volumeModel, FloatModel * panningModel,
@@ -111,7 +113,7 @@ void AudioPort::doProcessing()
 	const fpp_t fpp = Engine::audioEngine()->framesPerPeriod();
 
 	// clear the buffer
-	BufferManager::clear( m_portBuffer, fpp );
+	zeroSampleFrames(m_portBuffer, fpp);
 
 	//qDebug( "Playhandles: %d", m_playHandles.size() );
 	for( PlayHandle * ph : m_playHandles ) // now we mix all playhandle buffers into the audioport buffer
@@ -119,7 +121,7 @@ void AudioPort::doProcessing()
 		if( ph->buffer() )
 		{
 			if( ph->usesBuffer()
-				&& ( ph->type() == PlayHandle::TypeNotePlayHandle
+				&& ( ph->type() == PlayHandle::Type::NotePlayHandle
 					|| !MixHelpers::isSilent( ph->buffer(), fpp ) ) )
 			{
 				m_bufferUsage = true;
@@ -247,3 +249,5 @@ void AudioPort::removePlayHandle( PlayHandle * handle )
 		}
 	m_playHandleLock.unlock();
 }
+
+} // namespace lmms

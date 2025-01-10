@@ -22,13 +22,19 @@
  *
  */
 
-#ifndef SAMPLE_CLIP_VIEW_H
-#define SAMPLE_CLIP_VIEW_H
+#ifndef LMMS_GUI_SAMPLE_CLIP_VIEW_H
+#define LMMS_GUI_SAMPLE_CLIP_VIEW_H
 
-#include "SampleClipView.h"
-
-#include "SampleClip.h"
 #include "ClipView.h"
+
+namespace lmms
+{
+
+class SampleClip;
+
+namespace gui
+{
+
 
 class SampleClipView : public ClipView
 {
@@ -36,11 +42,12 @@ class SampleClipView : public ClipView
 
 public:
 	SampleClipView( SampleClip * _clip, TrackView * _tv );
-	virtual ~SampleClipView() = default;
+	~SampleClipView() override = default;
 
 public slots:
 	void updateSample();
 	void reverseSample();
+	void setAutomationGhost();
 
 
 
@@ -61,5 +68,8 @@ private:
 } ;
 
 
+} // namespace gui
 
-#endif
+} // namespace lmms
+
+#endif // LMMS_GUI_SAMPLE_CLIP_VIEW_H

@@ -24,15 +24,20 @@
 
 #include "Editor.h"
 
+#include "DeprecationHelper.h"
+#include "GuiApplication.h"
+#include "MainWindow.h"
 #include "Song.h"
 
-#include "MainWindow.h"
 #include "embed.h"
 
 #include <QAction>
-#include <QMdiArea>
 #include <QShortcut>
 #include <QCloseEvent>
+
+
+namespace lmms::gui
+{
 
 
 void Editor::setPauseIcon(bool displayPauseIcon)
@@ -56,7 +61,7 @@ DropToolBar * Editor::addDropToolBar(Qt::ToolBarArea whereToAdd, QString const &
 
 DropToolBar * Editor::addDropToolBar(QWidget * parent, Qt::ToolBarArea whereToAdd, QString const & windowTitle)
 {
-	DropToolBar *toolBar = new DropToolBar(parent);
+	auto toolBar = new DropToolBar(parent);
 	addToolBar(whereToAdd, toolBar);
 	toolBar->setMovable(false);
 	toolBar->setFloatable(false);
@@ -114,8 +119,8 @@ Editor::Editor(bool record, bool stepRecord) :
 	connect(m_toggleStepRecordingAction, SIGNAL(triggered()), this, SLOT(toggleStepRecording()));
 	connect(m_stopAction, SIGNAL(triggered()), this, SLOT(stop()));
 	new QShortcut(Qt::Key_Space, this, SLOT(togglePlayStop()));
-	new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_Space), this, SLOT(togglePause()));
-	new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F11), this, SLOT(toggleMaximize()));
+	new QShortcut(QKeySequence(combine(Qt::SHIFT, Qt::Key_Space)), this, SLOT(togglePause()));
+	new QShortcut(QKeySequence(combine(Qt::SHIFT, Qt::Key_F11)), this, SLOT(toggleMaximize()));
 
 	// Add actions to toolbar
 	addButton(m_playAction, "playButton");
@@ -131,17 +136,12 @@ Editor::Editor(bool record, bool stepRecord) :
 	addButton(m_stopAction, "stopButton");
 }
 
-Editor::~Editor()
-{
-
-}
-
 QAction *Editor::playAction() const
 {
 	return m_playAction;
 }
 
-void Editor::closeEvent( QCloseEvent * _ce )
+void Editor::closeEvent(QCloseEvent * event)
 {
 	if( parentWidget() )
 	{
@@ -151,7 +151,8 @@ void Editor::closeEvent( QCloseEvent * _ce )
 	{
 		hide();
 	}
-	_ce->ignore();
+	getGUI()->mainWindow()->refocus();
+	event->ignore();
  }
 
 DropToolBar::DropToolBar(QWidget* parent) : QToolBar(parent)
@@ -171,3 +172,4 @@ void DropToolBar::dropEvent(QDropEvent* event)
 
 
 
+} // namespace lmms::gui
